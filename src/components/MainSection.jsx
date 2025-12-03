@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   fetchplaylistsByID,
   searchAlbumByQuery,
@@ -7,9 +7,9 @@ import {
 import AlbumSlider from "./Sliders/AlbumSlider";
 import PlaylistSlider from "./Sliders/PlaylistSlider";
 import ArtistSlider from "./Sliders/ArtistSlider";
-import SongGrid from "./SongGrid";
 import RecentPlayedCard from "./RecentPlayedCard";
-import { useRef } from "react";
+import NewSongCard from "./NewSongCard";
+import TrendingCard from "./TrendingCard";
 import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardArrowRight,
@@ -25,26 +25,27 @@ const MainSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [list, setList] = useState({});
+  
+  const recentScrollRef = useRef(null);
   const latestSongsScrollRef = useRef(null);
-  const songsScrollRef = useRef(null);
-  const scrollRef = useRef(null);
+  const trendingScrollRef = useRef(null);
 
   const getRecentlyPlayedSongs = () => {
     const playedSongs = JSON.parse(localStorage.getItem("playedSongs")) || [];
-    return playedSongs.slice(0, 12); // Limit to 12 songs
+    return playedSongs.slice(0, 12);
   };
 
   const recentlyPlayedSongs = getRecentlyPlayedSongs();
 
   const scrollLeft = (scrollRef) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft -= 1000;
+      scrollRef.current.scrollLeft -= 800;
     }
   };
 
   const scrollRight = (scrollRef) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft += 1000;
+      scrollRef.current.scrollLeft += 800;
     }
   };
 
@@ -61,7 +62,7 @@ const MainSection = () => {
     const fetchSongData = async () => {
       try {
         const song = await fetchplaylistsByID(110858205);
-        setTrending(song.data.songs.slice(0, 12)); // Limit to 12
+        setTrending(song.data.songs.slice(0, 12));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -72,7 +73,7 @@ const MainSection = () => {
     const fetchlatestSongData = async () => {
       try {
         const latestSongs = await fetchplaylistsByID(6689255);
-        setlatestSongs(latestSongs.data.songs.slice(0, 12)); // Limit to 12
+        setlatestSongs(latestSongs.data.songs.slice(0, 12));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -129,7 +130,6 @@ const MainSection = () => {
     const uniqueSongs = combineArray.filter(
       (song, index, self) => index === self.findIndex((t) => t.id === song.id)
     );
-
     setList(uniqueSongs);
   }, [trending, latestSongs]);
 
@@ -137,41 +137,40 @@ const MainSection = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className="pt-[3rem] lg:pt-5 my-[2rem] mt-[5rem] lg:my-[4rem] flex flex-col items-center overflow-x-clip gap-[2rem]">
+    <div className="pt-[3rem] lg:pt-5 my-[2rem] mt-[5rem] lg:my-[4rem] flex flex-col items-center overflow-x-clip gap-[1.5rem]">
       <div className="hidden lg:block text-2xl w-full font-semibold lg:ml-[5.5rem] m-1">
         {getGreeting()}
       </div>
 
-      {/* Recently Played - YT Music Speed Dial Style */}
+      {/* Recently Played - Speed Dial Style (2×3 Grid, 12 total) */}
       {recentlyPlayedSongs.length > 0 && (
-        <div className="flex flex-col w-full px-3 lg:px-0">
+        <div className="flex flex-col w-full">
           <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
             Recently Played
           </h2>
           <div className="flex justify-center items-center gap-3 w-full">
             <MdOutlineKeyboardArrowLeft
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
-              onClick={() => scrollLeft(scrollRef)}
+              onClick={() => scrollLeft(recentScrollRef)}
             />
-            {/* 2 Rows × 3 Columns Grid */}
             <div
-              className="grid grid-cols-3 lg:grid-cols-3 grid-rows-2 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%]"
-              ref={scrollRef}
+              className="grid grid-cols-3 grid-rows-2 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%] px-3 lg:px-0"
+              ref={recentScrollRef}
             >
-              {recentlyPlayedSongs.slice(0, 6).map((song, index) => (
+              {recentlyPlayedSongs.map((song, index) => (
                 <RecentPlayedCard key={song.id || index} {...song} song={list} />
               ))}
             </div>
             <MdOutlineKeyboardArrowRight
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
-              onClick={() => scrollRight(scrollRef)}
+              onClick={() => scrollRight(recentScrollRef)}
             />
           </div>
         </div>
       )}
 
-      {/* New Songs - YT Music Welcome Style (4 Columns Grid) */}
-      <div className="flex flex-col w-full px-3 lg:px-0">
+      {/* New Songs - Playlist Style (Square Cards, 4 columns, horizontal scroll) */}
+      <div className="flex flex-col w-full">
         <h2 className="m-4 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
           New Songs
         </h2>
@@ -180,13 +179,12 @@ const MainSection = () => {
             className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
             onClick={() => scrollLeft(latestSongsScrollRef)}
           />
-          {/* 3 Rows × 4 Columns Grid */}
           <div
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%]"
+            className="grid grid-rows-1 lg:grid-rows-3 grid-flow-col gap-3 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth w-full px-3 lg:px-0"
             ref={latestSongsScrollRef}
           >
             {latestSongs.map((song, index) => (
-              <SongGrid key={song.id || index} {...song} song={list} />
+              <NewSongCard key={song.id || index} {...song} song={list} />
             ))}
           </div>
           <MdOutlineKeyboardArrowRight
@@ -198,27 +196,27 @@ const MainSection = () => {
 
       <br />
 
-      {/* Today Trending Section - 4 Columns Grid */}
-      <div className="flex flex-col w-full px-3 lg:px-0">
+      {/* Today Trending - YT Music Style (Horizontal Cards) */}
+      <div className="flex flex-col w-full">
         <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
           Today Trending
         </h2>
         <div className="flex justify-center items-center gap-3 w-full">
           <MdOutlineKeyboardArrowLeft
             className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
-            onClick={() => scrollLeft(songsScrollRef)}
+            onClick={() => scrollLeft(trendingScrollRef)}
           />
           <div
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%]"
-            ref={songsScrollRef}
+            className="grid grid-rows-1 lg:grid-rows-2 grid-flow-col gap-3 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth w-full px-3 lg:px-0"
+            ref={trendingScrollRef}
           >
             {trending.map((song) => (
-              <SongGrid key={song.id} {...song} song={list} />
+              <TrendingCard key={song.id} {...song} song={list} />
             ))}
           </div>
           <MdOutlineKeyboardArrowRight
             className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
-            onClick={() => scrollRight(songsScrollRef)}
+            onClick={() => scrollRight(trendingScrollRef)}
           />
         </div>
       </div>

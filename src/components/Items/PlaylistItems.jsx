@@ -1,27 +1,29 @@
+import { Link } from "react-router";
+import he from "he";
 
-import { Link } from "react-router"; 
-const PlaylistItems = ({name , image , id}) => {
-
-
-  // Ensure image is an array with at least 3 elements, or provide a fallback image
+const PlaylistItems = ({ name, image, id }) => {
   const imageUrl = image[2]?.url || image;
 
   return (
     <Link
       to={`/playlists/${id}`}
-      className="lg:w-[9.5rem] w-[5.5rem]   flex flex-col justify-center items-center gap-3 rounded-lg"
-    > 
-      <img
-        src={imageUrl || "/Unknown.png"}
-        alt={name}
-        className="rounded"
-      />
-      <div className="text-[13px] h-[2.5rem] w-full flex flex-col justify-center items-center">
-        <span className="font-semibold overflow-hidden w-[6rem]">{name}</span>
+      className="playlist-card group lg:w-[12rem] w-[7rem] flex flex-col overflow-hidden hover:shadow-2xl cursor-pointer"
+    >
+      <div className="p-2">
+        <img
+          src={imageUrl || "/Unknown.png"}
+          alt={name}
+          className="rounded-2xl w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      </div>
+      
+      <div className="px-3 pb-3 flex justify-center items-center">
+        <span className="font-semibold text-sm lg:text-base text-center truncate w-full group-hover:text-accent transition-colors">
+          {name ? he.decode(name) : "Unnamed Playlist"}
+        </span>
       </div>
     </Link>
   );
 };
 
-
-export default PlaylistItems
+export default PlaylistItems;

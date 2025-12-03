@@ -64,19 +64,45 @@ body::-webkit-scrollbar {
   box-shadow: 0 8px 24px var(--shadow);
 }
 
-/* Trending Card - Horizontal Rectangle */
-.trending-card {
+/* YT Music Style Cards */
+.yt-card {
   background: var(--card-bg);
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
   border: 1px solid var(--card-border);
 }
 
-.trending-card:hover {
+.yt-card:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px var(--shadow);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+/* Grid Layouts */
+.grid-2x3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.grid-3x4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .grid-2x3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .grid-3x4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
 }
 
 /* Album Card - Square with Gradient Overlay */

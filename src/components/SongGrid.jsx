@@ -24,38 +24,38 @@ const SongGrid = ({ name, artists, duration, downloadUrl, image, id, song }) => 
 
   return (
     <div
-      className="trending-card group relative lg:w-[16rem] lg:h-[5rem] w-[10rem] h-[4rem] p-2 cursor-pointer overflow-hidden"
+      className="group relative cursor-pointer rounded-xl overflow-hidden bg-groovia-card border border-groovia-border hover:border-groovia-accent transition-all duration-300 hover:shadow-groovia"
       onClick={() =>
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }
     >
-      <div className="flex items-center gap-3 h-full">
-        {/* Album Art */}
-        <div className="relative flex-shrink-0">
-          <img
-            src={imageUrl}
-            alt={name}
-            className="lg:w-[4rem] lg:h-[4rem] w-[3rem] h-[3rem] rounded-lg object-cover transition-all duration-300 group-hover:brightness-75"
-          />
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <FaPlay className="text-white text-xl drop-shadow-lg" />
+      {/* Image Container */}
+      <div className="relative aspect-square overflow-hidden">
+        <img
+          src={imageUrl}
+          alt={name}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
+        
+        {/* Play Button */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="bg-groovia-accent rounded-full p-3 shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
+            <FaPlay className="text-white text-lg" />
           </div>
         </div>
+      </div>
 
-        {/* Song Info */}
-        <div className="flex flex-col justify-center overflow-hidden flex-1 min-w-0">
-          <span className="font-semibold text-sm lg:text-base truncate">
-            {name ? he.decode(name) : "Empty"}
-          </span>
-          <span className="text-xs text-gray-400 truncate">
-            {he.decode(artistNames)}
-          </span>
-        </div>
-
-        {/* Duration */}
-        <span className="text-xs text-gray-500 hidden lg:block">
-          {convertTime(duration)}
-        </span>
+      {/* Song Info */}
+      <div className="p-3 bg-groovia-card">
+        <h3 className="font-semibold text-sm truncate mb-1">
+          {name ? he.decode(name) : "Empty"}
+        </h3>
+        <p className="text-xs text-gray-400 truncate">
+          {he.decode(artistNames)}
+        </p>
       </div>
     </div>
   );

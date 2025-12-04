@@ -203,7 +203,7 @@ const MainSection = () => {
 
       <br />
 
-      {/* Today Trending - YT Music Relaxation Hub Style */}
+      {/* Today Trending - YT Music Style: 4 rows × 3 columns */}
       <div className="flex flex-col w-full">
         <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
           Today Trending
@@ -213,14 +213,14 @@ const MainSection = () => {
             className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
             onClick={() => scrollLeft(trendingScrollRef)}
           />
-          <div className="w-full overflow-hidden px-2 lg:px-0">
+          <div className="w-full overflow-hidden pl-2 lg:pl-0">
             <div
-              className="grid gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth"
+              className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth pr-2"
               ref={trendingScrollRef}
               style={{ 
-                gridTemplateRows: 'repeat(2, 1fr)',
+                gridTemplateRows: 'repeat(4, 1fr)',
                 gridAutoFlow: 'column',
-                gridAutoColumns: 'calc(50% - 12px)'
+                gridAutoColumns: 'calc(30% - 8px)'
               }}
             >
               {trending.map((song) => (

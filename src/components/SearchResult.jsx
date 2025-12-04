@@ -22,7 +22,7 @@ const SearchResultCard = ({ name, artists, duration, downloadUrl, image, id, son
 
   return (
     <div
-      className="card group w-full p-3 rounded-xl cursor-pointer hover:border-groovia-accent transition-all duration-300 flex items-center gap-4"
+      className="card group w-full lg:max-w-4xl mx-auto p-4 rounded-xl cursor-pointer hover:border-groovia-accent transition-all duration-300 flex items-center gap-5"
       onClick={() =>
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }
@@ -32,19 +32,19 @@ const SearchResultCard = ({ name, artists, duration, downloadUrl, image, id, son
         <img
           src={imageUrl}
           alt={name}
-          className="w-16 h-16 lg:w-20 lg:h-20 rounded-lg object-cover"
+          className="w-20 h-20 lg:w-24 lg:h-24 rounded-xl object-cover"
         />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/50 rounded-lg">
-          <FaPlay className="text-white text-xl" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/50 rounded-xl">
+          <FaPlay className="text-white text-2xl" />
         </div>
       </div>
 
       {/* Song Info */}
       <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-base lg:text-lg truncate mb-1">
+        <h3 className="font-semibold text-lg lg:text-xl truncate mb-2">
           {name ? he.decode(name) : "Empty"}
         </h3>
-        <p className="text-sm text-gray-400 truncate">
+        <p className="text-sm lg:text-base text-gray-400 truncate">
           {he.decode(artistNames)}
         </p>
       </div>

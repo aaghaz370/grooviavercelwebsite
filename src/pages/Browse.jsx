@@ -160,9 +160,9 @@ const Browse = () => {
               </button>
             </div>
 
-            {/* Suggestions Dropdown */}
+            {/* Suggestions Dropdown - 2 columns */}
             {suggestions.length > 0 && (
-              <div className="suggestionSection absolute top-14 left-0 right-0 p-3 grid grid-cols-1 lg:grid-cols-2 gap-3 rounded-xl w-full max-h-[25rem] overflow-auto shadow-groovia-lg z-50">
+              <div className="suggestionSection absolute top-14 left-0 right-0 p-3 grid grid-cols-2 gap-3 rounded-xl w-full max-h-[28rem] overflow-auto shadow-groovia-lg z-50">
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={index}
@@ -172,9 +172,9 @@ const Browse = () => {
                     <img
                       src={suggestion.image}
                       alt=""
-                      className="h-[3.5rem] w-[3.5rem] rounded-lg object-cover"
+                      className="h-[3.5rem] w-[3.5rem] rounded-lg object-cover flex-shrink-0"
                     />
-                    <div className="flex flex-col overflow-hidden flex-1">
+                    <div className="flex flex-col overflow-hidden flex-1 min-w-0">
                       <span className="text-sm font-semibold truncate">
                         {he.decode(suggestion.name)}
                       </span>
@@ -191,7 +191,6 @@ const Browse = () => {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold mb-4">Browse All</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Category Cards */}
             <div className="card p-6 rounded-xl h-32 flex items-end bg-gradient-to-br from-purple-600 to-purple-900 cursor-pointer hover:scale-105 transition-transform">
               <h3 className="text-xl font-bold">Hindi</h3>
             </div>

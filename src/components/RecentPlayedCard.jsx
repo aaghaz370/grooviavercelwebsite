@@ -15,10 +15,11 @@ const RecentPlayedCard = ({ name, artists, duration, downloadUrl, image, id, son
 
   return (
     <div
-      className="group relative cursor-pointer rounded-2xl overflow-hidden bg-groovia-card border border-groovia-border hover:border-groovia-accent transition-all duration-300 hover:shadow-groovia aspect-square"
+      className="group relative cursor-pointer rounded-2xl overflow-hidden bg-groovia-card border border-groovia-border hover:border-groovia-accent transition-all duration-300 hover:shadow-groovia w-full"
       onClick={() =>
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }
+      style={{ aspectRatio: '1/1' }}
     >
       {/* Image Container - Full Card */}
       <div className="relative w-full h-full">
@@ -33,17 +34,17 @@ const RecentPlayedCard = ({ name, artists, duration, downloadUrl, image, id, son
         
         {/* Play Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="bg-groovia-accent rounded-full p-4 lg:p-5 shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
-            <FaPlay className="text-white text-2xl lg:text-3xl" />
+          <div className="bg-groovia-accent rounded-full p-3 lg:p-5 shadow-xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
+            <FaPlay className="text-white text-xl lg:text-3xl" />
           </div>
         </div>
 
         {/* Song Info Overlay - Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 lg:p-4 text-white z-10">
-          <h3 className="font-semibold text-sm lg:text-base truncate mb-1">
+        <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-4 text-white z-10">
+          <h3 className="font-semibold text-xs lg:text-base truncate mb-0.5 lg:mb-1">
             {name ? he.decode(name) : "Empty"}
           </h3>
-          <p className="text-xs lg:text-sm text-gray-300 truncate">
+          <p className="text-[10px] lg:text-sm text-gray-300 truncate">
             {he.decode(artistNames)}
           </p>
         </div>

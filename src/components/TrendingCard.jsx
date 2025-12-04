@@ -22,7 +22,7 @@ const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song })
 
   return (
     <div
-      className="card group lg:w-[20rem] w-[16rem] h-[4.5rem] p-2 rounded-xl cursor-pointer hover:border-groovia-accent transition-all duration-300 flex items-center gap-3"
+      className="card group lg:w-[18rem] w-[15rem] h-[4.5rem] p-2 rounded-xl cursor-pointer hover:border-groovia-accent transition-all duration-300 flex items-center gap-3"
       onClick={() =>
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }

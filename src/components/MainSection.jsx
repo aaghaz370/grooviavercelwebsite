@@ -39,13 +39,13 @@ const MainSection = () => {
 
   const scrollLeft = (scrollRef) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft -= 800;
+      scrollRef.current.scrollLeft -= 600;
     }
   };
 
   const scrollRight = (scrollRef) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft += 800;
+      scrollRef.current.scrollLeft += 600;
     }
   };
 
@@ -142,7 +142,7 @@ const MainSection = () => {
         {getGreeting()}
       </div>
 
-      {/* Recently Played - Speed Dial Style (2×3 Grid, 12 total) */}
+      {/* Recently Played - 3×2 Grid, 6 visible, scroll for next 6 */}
       {recentlyPlayedSongs.length > 0 && (
         <div className="flex flex-col w-full">
           <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
@@ -153,9 +153,14 @@ const MainSection = () => {
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
               onClick={() => scrollLeft(recentScrollRef)}
             />
+            {/* 3 columns, 2 rows, horizontal scroll */}
             <div
-              className="grid grid-cols-3 grid-rows-2 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%] px-3 lg:px-0"
+              className="grid grid-cols-3 grid-rows-2 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[85%] px-3 lg:px-0"
               ref={recentScrollRef}
+              style={{ 
+                gridAutoFlow: 'column',
+                gridAutoColumns: 'minmax(0, 1fr)'
+              }}
             >
               {recentlyPlayedSongs.map((song, index) => (
                 <RecentPlayedCard key={song.id || index} {...song} song={list} />
@@ -169,7 +174,7 @@ const MainSection = () => {
         </div>
       )}
 
-      {/* New Songs - Playlist Style (Square Cards, 4 columns, horizontal scroll) */}
+      {/* New Songs - Perfect as is */}
       <div className="flex flex-col w-full">
         <h2 className="m-4 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
           New Songs
@@ -196,7 +201,7 @@ const MainSection = () => {
 
       <br />
 
-      {/* Today Trending - YT Music Style (Horizontal Cards) */}
+      {/* Today Trending - 4 cards per view, side card visible */}
       <div className="flex flex-col w-full">
         <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
           Today Trending
@@ -206,9 +211,14 @@ const MainSection = () => {
             className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
             onClick={() => scrollLeft(trendingScrollRef)}
           />
+          {/* 2 rows, 2 columns visible at a time, scroll for more */}
           <div
-            className="grid grid-rows-1 lg:grid-rows-2 grid-flow-col gap-3 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth w-full px-3 lg:px-0"
+            className="grid grid-rows-2 grid-cols-2 lg:grid-rows-2 lg:grid-cols-2 gap-3 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[85%] px-3 lg:px-0"
             ref={trendingScrollRef}
+            style={{ 
+              gridAutoFlow: 'column',
+              gridAutoColumns: 'minmax(0, 1fr)'
+            }}
           >
             {trending.map((song) => (
               <TrendingCard key={song.id} {...song} song={list} />

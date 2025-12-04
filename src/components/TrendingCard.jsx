@@ -14,11 +14,11 @@ const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song })
 
   return (
     <div
-      className="group relative cursor-pointer rounded-xl overflow-hidden bg-groovia-card border border-groovia-border hover:border-groovia-accent transition-all duration-300 hover:shadow-groovia"
+      className="group relative cursor-pointer rounded-lg overflow-hidden bg-groovia-card border border-groovia-border hover:border-groovia-accent transition-all duration-300 hover:shadow-groovia"
       onClick={() =>
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }
-      style={{ aspectRatio: '16/9', width: '100%' }}
+      style={{ aspectRatio: '3/2', width: '100%' }}
     >
       {/* Background Image */}
       <img
@@ -28,14 +28,14 @@ const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song })
       />
       
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
       
-      {/* Song Info - Bottom Left */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 lg:p-4 text-white z-10">
-        <h3 className="font-bold text-base lg:text-xl truncate mb-1">
+      {/* Song Info - Bottom */}
+      <div className="absolute bottom-0 left-0 right-0 p-2 text-white z-10">
+        <h3 className="font-semibold text-xs lg:text-sm truncate mb-0.5">
           {name ? he.decode(name) : "Empty"}
         </h3>
-        <p className="text-xs lg:text-sm text-gray-300 truncate">
+        <p className="text-[10px] lg:text-xs text-gray-300 truncate">
           {he.decode(artistNames)}
         </p>
       </div>

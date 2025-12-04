@@ -1,7 +1,6 @@
 import { useContext } from "react";
 import MusicContext from "../context/MusicContext";
 import he from "he";
-import { FaPlay } from "react-icons/fa";
 
 const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song }) => {
   const { playMusic } = useContext(MusicContext);
@@ -13,43 +12,33 @@ const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song })
 
   downloadUrl = downloadUrl ? downloadUrl[4]?.url || downloadUrl : song.audio;
 
-  const convertTime = (seconds) => {
-    if (!seconds || typeof seconds !== "number") return "0:00";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = (seconds % 60).toString().padStart(2, "0");
-    return `${minutes}:${remainingSeconds}`;
-  };
-
   return (
     <div
-      className="card group lg:w-[18rem] w-[15rem] h-[4.5rem] p-2 rounded-xl cursor-pointer hover:border-groovia-accent transition-all duration-300 flex items-center gap-3"
+      className="group relative cursor-pointer rounded-xl overflow-hidden bg-groovia-card border border-groovia-border hover:border-groovia-accent transition-all duration-300 hover:shadow-groovia"
       onClick={() =>
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }
+      style={{ aspectRatio: '16/9', width: '100%' }}
     >
-      <div className="relative flex-shrink-0">
-        <img
-          src={imageUrl}
-          alt={name}
-          className="lg:w-[3.5rem] lg:h-[3.5rem] w-[3rem] h-[3rem] rounded-lg object-cover transition-all duration-300"
-        />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 rounded-lg">
-          <FaPlay className="text-white text-lg" />
-        </div>
-      </div>
-
-      <div className="flex flex-col justify-center overflow-hidden flex-1 min-w-0">
-        <span className="font-semibold text-sm truncate">
+      {/* Background Image */}
+      <img
+        src={imageUrl}
+        alt={name}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+      
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      
+      {/* Song Info - Bottom Left */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 lg:p-4 text-white z-10">
+        <h3 className="font-bold text-base lg:text-xl truncate mb-1">
           {name ? he.decode(name) : "Empty"}
-        </span>
-        <span className="text-xs text-gray-400 truncate">
+        </h3>
+        <p className="text-xs lg:text-sm text-gray-300 truncate">
           {he.decode(artistNames)}
-        </span>
+        </p>
       </div>
-
-      <span className="text-xs text-gray-500 hidden lg:block">
-        {convertTime(duration)}
-      </span>
     </div>
   );
 };

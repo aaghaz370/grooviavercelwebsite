@@ -203,23 +203,30 @@ const MainSection = () => {
 
       <br />
 
-      {/* Today Trending */}
+      {/* Today Trending - YT Music Relaxation Hub Style */}
       <div className="flex flex-col w-full">
-        <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
+        <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
           Today Trending
         </h2>
-        <div className="flex justify-center items-center gap-3 w-full">
+        <div className="flex justify-center items-center gap-2 w-full">
           <MdOutlineKeyboardArrowLeft
             className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
             onClick={() => scrollLeft(trendingScrollRef)}
           />
-          <div
-            className="grid grid-rows-1 lg:grid-rows-2 grid-flow-col gap-3 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%] px-3 lg:px-0"
-            ref={trendingScrollRef}
-          >
-            {trending.map((song) => (
-              <TrendingCard key={song.id} {...song} song={list} />
-            ))}
+          <div className="w-full overflow-hidden px-2 lg:px-0">
+            <div
+              className="grid gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth"
+              ref={trendingScrollRef}
+              style={{ 
+                gridTemplateRows: 'repeat(2, 1fr)',
+                gridAutoFlow: 'column',
+                gridAutoColumns: 'calc(50% - 12px)'
+              }}
+            >
+              {trending.map((song) => (
+                <TrendingCard key={song.id} {...song} song={list} />
+              ))}
+            </div>
           </div>
           <MdOutlineKeyboardArrowRight
             className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"

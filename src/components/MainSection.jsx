@@ -142,24 +142,25 @@ const MainSection = () => {
         {getGreeting()}
       </div>
 
-      {/* Recently Played - Original Style: 3×2 grid visible, scroll horizontally */}
+      {/* Recently Played - YT Music Style Grid */}
       {recentlyPlayedSongs.length > 0 && (
         <div className="flex flex-col w-full">
-          <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
+          <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
             Recently Played
           </h2>
-          <div className="flex justify-center items-center gap-3 w-full">
+          <div className="flex justify-center items-center gap-2 w-full">
             <MdOutlineKeyboardArrowLeft
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
               onClick={() => scrollLeft(recentScrollRef)}
             />
-            {/* Desktop: Large cards, 3×2 grid | Mobile: Small cards */}
+            {/* 3 columns, 2 rows, proper spacing */}
             <div
-              className="grid grid-cols-3 grid-rows-2 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%] px-3 lg:px-0"
+              className="grid grid-cols-3 grid-rows-2 gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth w-full px-2 lg:px-0"
               ref={recentScrollRef}
               style={{ 
                 gridAutoFlow: 'column',
-                gridAutoColumns: 'minmax(140px, 1fr)'
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gridAutoColumns: 'minmax(0, 1fr)'
               }}
             >
               {recentlyPlayedSongs.map((song, index) => (

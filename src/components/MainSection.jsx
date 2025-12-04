@@ -142,7 +142,7 @@ const MainSection = () => {
         {getGreeting()}
       </div>
 
-      {/* Recently Played - YT Music Style Grid */}
+      {/* Recently Played - 3×2 grid, 6 visible, scroll for more */}
       {recentlyPlayedSongs.length > 0 && (
         <div className="flex flex-col w-full">
           <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
@@ -153,19 +153,20 @@ const MainSection = () => {
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
               onClick={() => scrollLeft(recentScrollRef)}
             />
-            {/* 3 columns, 2 rows, proper spacing */}
-            <div
-              className="grid grid-cols-3 grid-rows-2 gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth w-full px-2 lg:px-0"
-              ref={recentScrollRef}
-              style={{ 
-                gridAutoFlow: 'column',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gridAutoColumns: 'minmax(0, 1fr)'
-              }}
-            >
-              {recentlyPlayedSongs.map((song, index) => (
-                <RecentPlayedCard key={song.id || index} {...song} song={list} />
-              ))}
+            <div className="w-full overflow-hidden px-2 lg:px-0">
+              <div
+                className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth"
+                ref={recentScrollRef}
+                style={{ 
+                  gridTemplateRows: 'repeat(2, 1fr)',
+                  gridAutoFlow: 'column',
+                  gridAutoColumns: 'calc(33.333% - 8px)'
+                }}
+              >
+                {recentlyPlayedSongs.map((song, index) => (
+                  <RecentPlayedCard key={song.id || index} {...song} song={list} />
+                ))}
+              </div>
             </div>
             <MdOutlineKeyboardArrowRight
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"

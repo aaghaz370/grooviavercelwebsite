@@ -153,11 +153,14 @@ const MainSection = () => {
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
               onClick={() => scrollLeft(recentScrollRef)}
             />
-            {/* Grid: 3 cols × 2 rows, auto-flow column for horizontal scroll */}
+            {/* Desktop: Large cards, 3×2 grid | Mobile: Small cards */}
             <div
-              className="grid grid-cols-3 grid-rows-2 auto-cols-fr gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%] px-3 lg:px-0"
+              className="grid grid-cols-3 grid-rows-2 gap-3 lg:gap-4 overflow-x-auto scroll-hide scroll-smooth w-full lg:w-[90%] px-3 lg:px-0"
               ref={recentScrollRef}
-              style={{ gridAutoFlow: 'column' }}
+              style={{ 
+                gridAutoFlow: 'column',
+                gridAutoColumns: 'minmax(140px, 1fr)'
+              }}
             >
               {recentlyPlayedSongs.map((song, index) => (
                 <RecentPlayedCard key={song.id || index} {...song} song={list} />

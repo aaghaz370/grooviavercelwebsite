@@ -12,7 +12,7 @@ const MoodPlaylistCard = ({ id, name, description, moodTag, image }) => {
         flex-shrink-0 
         w-full 
         lg:w-[480px]
-        h-[260px]           /* ⬅️ height badha di */
+        h-[290px]           /* ⬅️ height badha di */
         lg:h-[280px]        /* ⬅️ desktop pe thoda aur tall */
         rounded-3xl 
         overflow-hidden 

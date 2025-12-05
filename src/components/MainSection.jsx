@@ -137,7 +137,8 @@ const MainSection = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className="pt-[3rem] lg:pt-5 my-[2rem] mt-[5rem] lg:my-[4rem] flex flex-col items-center overflow-x-clip gap-[1.5rem]">
+    //<div className="pt-[3rem] lg:pt-5 my-[2rem] mt-[5rem] lg:my-[4rem] flex flex-col items-center overflow-x-clip gap-[1.5rem]">
+    <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center overflow-x-clip gap-4">
       <div className="hidden lg:block text-2xl w-full font-semibold lg:ml-[5.5rem] m-1">
         {getGreeting()}
       </div>
@@ -235,7 +236,7 @@ const MainSection = () => {
         </div>
       </div>
 
-      <br />
+      
 
       {/* Top Albums Section */}
       <div className="w-full">
@@ -244,7 +245,7 @@ const MainSection = () => {
         </h2>
         <AlbumSlider albums={albums} />
       </div>
-      <br />
+      
 
       {/* Top Artists Section */}
       <div className="w-full">
@@ -253,7 +254,7 @@ const MainSection = () => {
         </h2>
         <ArtistSlider artists={artists} />
       </div>
-      <br />
+      
 
       {/* Top Playlists Section */}
       <div className="w-full flex flex-col gap-3">

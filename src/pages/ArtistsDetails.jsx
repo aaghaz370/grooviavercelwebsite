@@ -1,63 +1,72 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom"; // To fetch artist ID from URL
+import { useEffect, useState, useRef, useContext } from "react";
+import { useParams, Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
-import SongsList from "../components/SongsList";
-import Footer from "../components/footer";
-import MiniSlider from "../components/Sliders/miniSlider";
-import AlbumSlider from "../components/Sliders/AlbumSlider";
 import Navigator from "../components/Navigator";
-import ArtistItems from "../components/Items/ArtistItems";
-import { IoMdArrowRoundBack } from "react-icons/io";
+import Footer from "../components/footer";
+import SongsList from "../components/SongsList";
+import AlbumSlider from "../components/Sliders/AlbumSlider";
+import SongGrid from "../components/SongGrid";
+import { fetchArtistByID } from "../../fetch";
+import MusicContext from "../context/MusicContext";
+import he from "he";
+
+import {
+  MdOutlineKeyboardArrowLeft,
+  MdOutlineKeyboardArrowRight,
+} from "react-icons/md";
 
 const ArtistsDetails = () => {
-  const { id } = useParams(); // Extract the artist ID from the URL
-  const [details, setDetails] = useState({}); // Initialize as an empty object
+  const { id } = useParams();
+  const { playMusic } = useContext(MusicContext);
+
+  const [artistData, setArtistData] = useState(null);
+  const [topSongs, setTopSongs] = useState([]);
+  const [topAlbums, setTopAlbums] = useState([]);
+  const [singles, setSingles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [list , setList ] = useState({});
-  const naviagte = useNavigate();
-  const FollowerCount = (followerCount) => {
-    if (!followerCount || isNaN(followerCount)) {
-      return "Not available"; // Fallback for invalid or missing data
-    }
 
-    const count = parseInt(followerCount, 10);
-    const Million = 1000000;
-    const follower = (count / Million).toFixed(2);
-    return follower;
+  const singlesScrollRef = useRef(null);
+
+  const scrollLeft = () => {
+    if (singlesScrollRef.current) {
+      singlesScrollRef.current.scrollLeft -= 800;
+    }
   };
 
-  const FanCount = (fanCount) => {
-    if (!fanCount || isNaN(fanCount)) {
-      return "Not available"; // Fallback for invalid or missing data
+  const scrollRight = () => {
+    if (singlesScrollRef.current) {
+      singlesScrollRef.current.scrollLeft += 800;
     }
-
-    const count = parseInt(fanCount, 10);
-    const Thousand = 100000;
-    const fan = (count / Thousand).toFixed(2);
-    return fan;
   };
 
   useEffect(() => {
-    const fetchDetails = async () => {
+    const fetchArtist = async () => {
       try {
-        const apiurl = import.meta.env.VITE_API_URL;
-        let response = await fetch(`${apiurl}artists?id=${id}`);
-        
-         if (!response.ok) {
-          response = await fetch(`https://saavn.dev/api/artists?id=${id}`);
-        }
-  
-        if (!response.ok) {
-          throw new Error("Both APIs failed");
-        }
-  
-        const data = await response.json();
-        console.log(data);
-        setDetails(data);
-        setList(data.data.topSongs);
-  
+        setLoading(true);
+        const data = await fetchArtistByID(id);
+
+        // API se jo bhi shape aaye, usko normalise kar rahe hain
+        const raw = data?.data;
+        const artist = Array.isArray(raw) ? raw[0] : raw;
+
+        setArtistData(artist || null);
+
+        // Top songs
+        const ts = artist?.topSongs || [];
+        setTopSongs(ts);
+
+        // Top albums
+        const ta =
+          artist?.topAlbums?.albums || // agar nested ho
+          artist?.topAlbums ||
+          [];
+        setTopAlbums(ta);
+
+        // Singles (songs style cards)
+        const sg = artist?.singles || [];
+        setSingles(sg);
       } catch (err) {
         console.error(err);
         setError("Error fetching artist details");
@@ -65,113 +74,136 @@ const ArtistsDetails = () => {
         setLoading(false);
       }
     };
-  
-    fetchDetails();
-  }, [id]);
 
+    fetchArtist();
+  }, [id]);
 
   if (loading) {
     return (
       <div className="flex h-screen w-screen justify-center items-center">
-        
-        <img src="/Loading.gif" alt="" className=""/>
-        
+        <img src="/Loading.gif" alt="Loading..." />
       </div>
     );
   }
 
-  if (error) {
+  if (error || !artistData) {
     return (
-      <div className="flex h-screen w-screen justify-center items-center font-semibold">
-        <IoMdArrowRoundBack className="text-2xl m-2 lg:cursor-pointer" onClick={() => naviagte(-1)}/>
-        {error}
+      <div className="flex h-screen w-screen justify-center items-center">
+        {error || "Artist not found"}
       </div>
     );
   }
 
-  const artistData = details.data || {}; // Fallback to an empty object if `data` is undefined
-  const artistImage = artistData.image?.[2]?.url || ""; // Safely access image URL
+  const imageUrl =
+    artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
 
   return (
     <>
       <Navbar />
-      <div className=" mb-10">
-        <div className="mt-[8rem] lg:mt-[6rem]  flex flex-col justify-center gap-[1rem]  pt-5 ">
-          <div className="pl-[2rem] flex gap-5 items-center">
+
+      {/* Pure page scrollable, andar ka koi section alag se scroll nahi karega */}
+      <main className="pt-[9rem] lg:pt-[6.5rem] pb-[6rem] lg:pb-[4.5rem] px-4 lg:px-16 flex flex-col gap-8">
+
+        {/* HERO SECTION */}
+        <section className="flex flex-col lg:flex-row items-center lg:items-end gap-6">
+          <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden shadow-xl">
             <img
-              src={artistImage}
+              src={imageUrl}
               alt={artistData.name}
-              className="artistDetails h-[8rem] lg:h-[15rem] lg:rounded rounded-full"
+              className="w-full h-full object-cover"
             />
+          </div>
 
-            <div className="flex flex-col gap-2 ">
-              <h1 className="text-2xl font-bold mt-5 flex ">
+          <div className="flex flex-col gap-2 lg:ml-4 w-full">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl lg:text-3xl font-semibold">
                 {artistData.name}
-                {artistData.isVerified && (
-                  <div className="flex ">
-                    <img
-                      src="/verified.svg"
-                      alt="Verified"
-                      className="ml-2 mt-1 w-[1.2rem]   flex  "
-                    />
-                  </div>
-                )}
               </h1>
-              <div className="flex flex-col">
-                <span className="text-[0.70rem] lg:text-[0.90rem] font-medium">
-                  Followers : {FollowerCount(artistData.followerCount)} Million
-                </span>
-                <span className="text-[0.70rem] lg:text-[0.90rem] font-medium ">
-                  Listeners : {FanCount(artistData.fanCount)} K
-                </span>
-              </div>
+              {artistData?.isVerified && (
+                <img
+                  src="/verified.svg"
+                  alt="Verified"
+                  className="w-5 h-5 lg:w-6 lg:h-6"
+                />
+              )}
             </div>
-          </div>
-
-          <div className="flex flex-col mt-[1rem] gap-[1rem] h-[40rem]">
-            <h2 className="text-2xl font-bold pl-[1.5rem] block">Top Songs</h2>
-            <div className="p-2 w-full overflow-y-scroll scroll-hide ">
-              {artistData.topSongs.map((album) => (
-                <SongsList key={album.id} {...album} song={list} />
-              ))}
-            </div>
-          </div>
-        </div>
-        <div  className="flex flex-col gap-2">
-          <div className="gap-4 flex flex-col">
-            {details.data.similarArtists.length > 0 && (
-              <>
-                <h2 className=" lg:font-bold text-xl lg:text-2xl font-semibold pl-[1.5rem] lg:pl-[3rem] pb-[1rem] ">
-                  Similar Artists
-                </h2>
-                <div className="grid grid-flow-col lg:w-max pr-10  gap-4 pl-[1.2rem] lg:pl-[3rem] overflow-x-scroll scroll-hide ">
-                  {details.data.similarArtists?.map((artist) => (
-                    <ArtistItems
-                      key={artist.id}
-                      {...artist} // Fallback image
-                    />
-                  ))}
-                </div>
-              </>
+            <p className="text-sm lg:text-base text-gray-300">
+              Followers : {artistData.followerCount || artistData.fans || "—"}
+            </p>
+            {artistData?.listenerCount && (
+              <p className="text-sm lg:text-base text-gray-300">
+                Listeners : {artistData.listenerCount}
+              </p>
             )}
           </div>
-          <div>
-            <h2 className=" m-4 lg:font-bold text-xl lg:text-2xl font-semibold  w-[90%] lg:ml-[3rem]">
-              Top Albums
-            </h2>
-            <MiniSlider albums={artistData.topAlbums} />
-          </div>
-          <div>
-            <h2 className=" m-4 text-xl lg:font-bold lg:text-2xl font-semibold  w-[90%] lg:ml-[3rem]">
-              Singles
-            </h2>
-            <AlbumSlider albums={details.data.singles} />
-          </div>
-        </div>
-      </div>
-      <Player />
-      <Navigator />
+        </section>
+
+        {/* TOP SONGS – NORMAL LIST, KOI INNER SCROLL NAHI */}
+        {topSongs.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-xl lg:text-2xl font-semibold">Top Songs</h2>
+            <div className="flex flex-col gap-2">
+              {topSongs.map((song) => (
+                <SongsList key={song.id} {...song} song={topSongs} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* TOP ALBUMS – HOME PAGE WALA SLIDER STYLE */}
+        {topAlbums.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-xl lg:text-2xl font-semibold">Top Albums</h2>
+            <AlbumSlider albums={topAlbums} />
+          </section>
+        )}
+
+        {/* SINGLES – NEW SONGS WALA CARD STYLE */}
+        {singles.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-xl lg:text-2xl font-semibold">Singles</h2>
+
+            <div className="flex justify-center items-center gap-2 w-full">
+              <MdOutlineKeyboardArrowLeft
+                className="text-3xl h-[9rem] hidden lg:block arrow-btn hover:scale-125 cursor-pointer"
+                onClick={scrollLeft}
+              />
+
+              <div
+                ref={singlesScrollRef}
+                className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-3 w-full overflow-x-auto scroll-smooth scroll-hide px-1 lg:px-0"
+              >
+                {singles.map((single) => (
+                  <SongGrid
+                    key={single.id}
+                    {...single}
+                    song={singles}
+                    // Agar single ke andar songs[] ho to pehla song play kare
+                    downloadUrl={
+                      single.downloadUrl ||
+                      single.songs?.[0]?.downloadUrl ||
+                      single.perma_url
+                    }
+                    image={single.image || single.songs?.[0]?.image}
+                    artists={single.artists || single.songs?.[0]?.artists}
+                    duration={single.duration || single.songs?.[0]?.duration}
+                    name={single.name || single.title}
+                  />
+                ))}
+              </div>
+
+              <MdOutlineKeyboardArrowRight
+                className="text-3xl h-[9rem] hidden lg:block arrow-btn hover:scale-125 cursor-pointer"
+                onClick={scrollRight}
+              />
+            </div>
+          </section>
+        )}
+      </main>
+
       <Footer />
+      <Navigator />
+      <Player />
     </>
   );
 };

@@ -3,14 +3,14 @@
 // Ye sirf example hai – IDs / images tum JioSaavn se replace kar dena
 export const goldenEraPlaylists = [
   {
-    id: "101010101",                 // JioSaavn playlist id
+    id: "3379491",                 // JioSaavn playlist id
     name: "Golden Era: 90s Romance",
     type: "playlist",
     tagLine: "90s Bollywood love hits",   // optional, UI me use kar sakte ho
     image: [
       {
         quality: "50x50",
-        url: "https://c.saavncdn.com/...50x50.jpg",
+        url: "https://c.saavncdn.com/artists/Jatin-Lalit_50x50.jpg",
       },
       {
         quality: "150x150",

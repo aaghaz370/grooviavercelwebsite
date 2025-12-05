@@ -165,12 +165,12 @@ const AlbumDetail = () => {
         </div>
 
         <div className="flex flex-col h-auto gap-4 ">
-          <div className="overflow-y-scroll scroll-smooth scroll-hide  pt-3 ">
-            {details.data.songs?.map((song) => (
-              <SongsList key={song.id} {...song} song={list} />
-            ))}
-          </div>
-        </div>
+  <div className="flex flex-col gap-2 overflow-y-scroll scroll-smooth scroll-hide pt-3">
+    {details.data.songs?.map((song) => (
+      <SongsList key={song.id} {...song} song={list} />
+    ))}
+  </div>
+</div>
 
         {suggetions.length >= 0 && ( 
           <div className="flex flex-col justify-center items-center w-full mb-[5rem]">

@@ -144,6 +144,7 @@ const MainSection = () => {
         {getGreeting()}
       </div>
 
+      
       {/* Recently Played - 3×2 grid, 6 visible, scroll for more */}
       {recentlyPlayedSongs.length > 0 && (
         <div className="flex flex-col w-full">
@@ -155,21 +156,35 @@ const MainSection = () => {
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
               onClick={() => scrollLeft(recentScrollRef)}
             />
+
             <div className="w-full overflow-hidden px-2 lg:px-0">
-              <div
-                className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth"
-                ref={recentScrollRef}
-                style={{ 
-                  gridTemplateRows: 'repeat(2, 1fr)',
-                  gridAutoFlow: 'column',
-                  gridAutoColumns: 'calc(33.333% - 8px)'
-                }}
-              >
-                {recentlyPlayedSongs.map((song, index) => (
-                  <RecentPlayedCard key={song.id || index} {...song} song={list} />
-                ))}
-              </div>
+              {/** kitni rows? 3 se zyada songs tabhi 2 rows */}
+              {(() => {
+                const rows =
+                  recentlyPlayedSongs.length > 3 ? 2 : 1;
+
+                return (
+                  <div
+                    className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth"
+                    ref={recentScrollRef}
+                    style={{
+                      gridTemplateRows: `repeat(${rows}, 1fr)`,
+                      gridAutoFlow: "column",
+                      gridAutoColumns: "calc(33.333% - 8px)",
+                    }}
+                  >
+                    {recentlyPlayedSongs.map((song, index) => (
+                      <RecentPlayedCard
+                        key={song.id || index}
+                        {...song}
+                        song={list}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
+
             <MdOutlineKeyboardArrowRight
               className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
               onClick={() => scrollRight(recentScrollRef)}

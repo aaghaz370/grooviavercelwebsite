@@ -13,7 +13,7 @@ const MoodPlaylistCard = ({ id, name, description, moodTag, image }) => {
         w-full 
         lg:w-[480px]
         h-[290px]           /* ⬅️ height badha di */
-        lg:h-[280px]        /* ⬅️ desktop pe thoda aur tall */
+        lg:h-[320px]        /* ⬅️ desktop pe thoda aur tall */
         rounded-3xl 
         overflow-hidden 
         bg-groovia-card

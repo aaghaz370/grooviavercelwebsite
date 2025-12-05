@@ -12,7 +12,8 @@ const MoodPlaylistCard = ({ id, name, description, moodTag, image }) => {
         flex-shrink-0 
         w-full 
         lg:w-[480px]
-        h-[230px]
+        h-[260px]           /* ⬅️ height badha di */
+        lg:h-[280px]        /* ⬅️ desktop pe thoda aur tall */
         rounded-3xl 
         overflow-hidden 
         bg-groovia-card
@@ -28,12 +29,11 @@ const MoodPlaylistCard = ({ id, name, description, moodTag, image }) => {
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Gradient overlay – thoda warm feel */}
+      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/40 to-black/10" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col justify-between h-full px-4 py-3">
-        {/* Top text: title + description */}
+      <div className="relative z-10 flex flex-col justify-between h-full px-4 py-4">
         <div className="flex flex-col gap-1">
           <h3 className="text-lg lg:text-xl font-semibold tracking-tight">
             {name}
@@ -45,7 +45,6 @@ const MoodPlaylistCard = ({ id, name, description, moodTag, image }) => {
           )}
         </div>
 
-        {/* Bottom mood text (YT ka “Sounds like …” jaisa) */}
         {moodTag && (
           <p className="text-[11px] lg:text-xs italic text-white/85">
             {moodTag}

@@ -11,6 +11,7 @@ import RecentPlayedCard from "./RecentPlayedCard";
 import NewSongCard from "./NewSongCard";
 import TrendingCard from "./TrendingCard";
 import GoldenEraSection from "./sections/GoldenEraSection";
+import MoodSection from "./sections/MoodSection";
 import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardArrowRight,
@@ -251,6 +252,9 @@ const MainSection = () => {
           />
         </div>
       </div>
+
+      {/* Mood Playlists – big cards (Daily discover style) */}
+      <MoodSection />
 
       {/* Golden Era Playlists – new section */}
     <GoldenEraSection />

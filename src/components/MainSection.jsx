@@ -10,6 +10,7 @@ import ArtistSlider from "./Sliders/ArtistSlider";
 import RecentPlayedCard from "./RecentPlayedCard";
 import NewSongCard from "./NewSongCard";
 import TrendingCard from "./TrendingCard";
+import GoldenEraSection from "./sections/GoldenEraSection";
 import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardArrowRight,
@@ -236,7 +237,8 @@ const MainSection = () => {
         </div>
       </div>
 
-      
+      {/* Golden Era Playlists – new section */}
+    <GoldenEraSection />
 
       {/* Top Albums Section */}
       <div className="w-full">

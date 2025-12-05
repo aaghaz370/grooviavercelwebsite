@@ -1,69 +1,79 @@
-import { GoPlay } from "react-icons/go";
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import MusicContext from "../context/MusicContext";
 import he from "he";
 
-const SongsList = ({ name, artists, duration, downloadUrl, image, id , song }) => {
+const SongsList = ({
+  name,
+  artists,
+  duration,
+  downloadUrl,
+  image,
+  id,
+  song, // full list for queue
+}) => {
+  const { playMusic } = useContext(MusicContext);
 
-  const [hovering, setHovering] = useState(false);
-  // const { song } = useContext(MusicContext);
-
-  const convertTime = (seconds) => {
-    if (!seconds || typeof seconds !== "number") {
-      return "0:00"; // Fallback for invalid duration
-    }
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = (seconds % 60).toString().padStart(2, "0");
-    return `${minutes}:${remainingSeconds}`;
-  };
-
-  const {  playMusic } = useContext(MusicContext);
-
-  const imageUrl = image[2]?.url || image; // Safely access the image URL
+  const imageUrl = image?.[2]?.url || image;
   const artistNames = Array.isArray(artists?.primary)
-    ? artists.primary?.map((artist) => artist.name).join(", ")
+    ? artists.primary.map((a) => a.name).join(", ")
     : "Unknown Artist";
 
-    downloadUrl = downloadUrl ? downloadUrl[4]?.url  || downloadUrl : song.audio;
+  // same pattern as baaki components
+  const audioSrc = downloadUrl
+    ? downloadUrl[4]?.url || downloadUrl
+    : song?.audio || downloadUrl;
 
-  const decodeName = (name) => he.decode(name);
-//  console.log(song);
+  const convertTime = (seconds) => {
+    if (!seconds || typeof seconds !== "number") return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, "0");
+    return `${mins}:${secs}`;
+  };
+
+  const handlePlay = () => {
+    playMusic(audioSrc, name, duration, image, id, artists, song);
+  };
+
   return (
     <div
-      onClick={() =>
-        playMusic(downloadUrl, name, duration, imageUrl, id, artists , song)
-      }
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      className="overflow-clip h-[3.5rem] w-full song-item flex justify-between items-center p-2 song-info"
+      className="
+        card
+        w-full
+        px-3 lg:px-5
+        py-3.5 lg:py-4
+        flex items-center
+        gap-3 lg:gap-4
+        rounded-2xl
+        cursor-pointer
+        hover:bg-white/5
+        transition-all duration-200
+      "
+      onClick={handlePlay}
     >
-      <div className="relative cursor-pointer">
+      {/* Cover */}
+      <div className="relative flex-shrink-0">
         <img
-          src={imageUrl}
-          alt=""
-          className="w-[5rem] object-cover transition-all duration-700"
+          src={imageUrl || "/Unknown.png"}
+          alt={name}
+          className="w-12 h-12 lg:w-14 lg:h-14 rounded-lg object-cover"
         />
-        {hovering && (
-          <GoPlay className="  transition-all duration-700 absolute inset-0 hidden lg:flex items-center justify-center w-[2.35rem] h-[2.35rem]  opacity-65 backdrop-brightness-[0.6] icon " />
-        )}
       </div>
 
-      <div className="flex w-full pl-5 ">
-        <h3
-          autoCorrect=""
-          className={` overflow-clip text-[0.75rem] lg:text-[0.875rem] h-[1.3rem] font-medium  `}
-        >
-          {decodeName(name)}
-        </h3>
-      </div>
-      <div className="flex w-full">
-        <p className=" text-[0.60rem] lg:text-[0.75rem] h-[1rem] mr-3 overflow-clip lg:w-auto ">
+      {/* Title + artist */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <span className="font-semibold text-sm lg:text-base truncate text-white">
+          {name ? he.decode(name) : "Empty"}
+        </span>
+        <span className="text-xs lg:text-sm text-gray-400 truncate mt-0.5">
           {he.decode(artistNames)}
-        </p>
+        </span>
       </div>
 
-      <div className="song-duration mr-2">
-        <span className=" text-[0.60rem] lg:text-[0.75rem] ">
+      {/* Duration right side */}
+      <div className="ml-2 flex-shrink-0">
+        <span className="text-xs lg:text-sm text-gray-300">
           {convertTime(duration)}
         </span>
       </div>

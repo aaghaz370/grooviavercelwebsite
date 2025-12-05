@@ -10,18 +10,18 @@ export const goldenEraPlaylists = [
     image: [
       {
         quality: "50x50",
-        url: "https://c.saavncdn.com/artists/Jatin-Lalit_50x50.jpg",
+        url: "https://c.saavncdn.com/182/Dilwale-Dulhania-Le-Jayenge-Hindi-1995-50x50.jpg",
       },
       {
         quality: "150x150",
-        url: "https://c.saavncdn.com/...150x150.jpg",
+        url: "https://c.saavncdn.com/182/Dilwale-Dulhania-Le-Jayenge-Hindi-1995-150x150.jpg",
       },
       {
         quality: "500x500",
-        url: "https://c.saavncdn.com/...500x500.jpg",
+        url: "https://c.saavncdn.com/182/Dilwale-Dulhania-Le-Jayenge-Hindi-1995-500x500.jpg",
       },
     ],
-    songCount: 40,
+    songCount: 10,
     language: "hindi",
     explicitContent: false,
   },

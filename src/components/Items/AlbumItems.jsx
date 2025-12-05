@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import he from "he";
 
-import { fetchAlbumByID } from "../../fetch"; // path adjust kar lena agar alag ho
+//import { fetchAlbumByID } from "../../fetch"; // path adjust kar lena agar alag ho
+import { fetchAlbumByID } from "../../../fetch"; // ✅ root fetch.js
 import MusicContext from "../../context/MusicContext";
 
 const AlbumItems = ({ name, artists, id, image }) => {

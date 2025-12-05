@@ -7,20 +7,24 @@ const PlaylistItems = ({ name, image, id }) => {
   return (
     <Link
       to={`/playlists/${id}`}
-      className="playlist-card group lg:w-[12rem] w-[7rem] flex flex-col overflow-hidden hover:shadow-2xl cursor-pointer"
+      className="group cursor-pointer transition-all duration-300"
     >
-      <div className="p-2">
+      {/* Large Square Image */}
+      <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
         <img
           src={imageUrl || "/Unknown.png"}
           alt={name}
-          className="rounded-2xl w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
+        {/* Subtle overlay on hover */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
       </div>
       
-      <div className="px-3 pb-3 flex justify-center items-center">
-        <span className="font-semibold text-sm lg:text-base text-center truncate w-full group-hover:text-accent transition-colors">
+      {/* Playlist Name */}
+      <div className="px-1">
+        <h3 className="font-bold text-sm lg:text-base truncate text-white">
           {name ? he.decode(name) : "Unnamed Playlist"}
-        </span>
+        </h3>
       </div>
     </Link>
   );

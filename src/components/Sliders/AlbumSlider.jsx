@@ -51,4 +51,5 @@ const AlbumSlider = ({ albums }) => {
   );
 };
 
+
 export default AlbumSlider;

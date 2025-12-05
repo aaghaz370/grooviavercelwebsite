@@ -8,19 +8,15 @@ const Footer = () => {
         <div className="flex items-center ml-[-10px]">
         <span className="bg"></span>
         <div className="gap-1">
-          <span className="Musi  font-extrabold text-2xl lg:text-3xl ">Musi</span>
-          <span className="fy font-extrabold text-2xl lg:text-3xl ">fy</span>
+          <span className="Musi  font-extrabold text-2xl lg:text-3xl ">Groo</span>
+          <span className="fy font-extrabold text-2xl lg:text-3xl ">via</span>
         </div>
         </div>
 
         <div >
         <div>
-            <pre className="lg:text-sm text-xs">Made with ReactJS by Harsh. </pre>
-        <ul className="flex gap-4 ">
-            <li><a href="https://github.com/itz-Harsh/Musify.git" className="hover:underline text-[13px] lg:text-[15px]" target=" "><pre>Source Code</pre></a></li>
-            <li><a href="https://www.instagram.com/_harsh_str/" className="hover:underline text-[13px] lg:text-[15px]" target=" "><pre>Instagram</pre></a></li>
-
-        </ul>
+            <pre className="lg:text-sm text-xs">Made with ♥️ by Rolex Sir. </pre>
+        
         </div></div>
       </div>
 

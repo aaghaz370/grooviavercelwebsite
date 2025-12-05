@@ -19,7 +19,7 @@ const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song })
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }
     >
-      {/* Thumbnail left – like YT Music list */}
+      {/* Thumbnail left – YT Music style */}
       <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
         <img
           src={imageUrl}
@@ -37,11 +37,6 @@ const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song })
         <p className="text-xs text-gray-400 truncate font-normal">
           {he.decode(artistNames)}
         </p>
-      </div>
-
-      {/* Three-dot menu style icon on right */}
-      <div className="ml-2 text-gray-400 text-xl opacity-0 group-hover:opacity-100 select-none">
-        ⋮
       </div>
     </div>
   );

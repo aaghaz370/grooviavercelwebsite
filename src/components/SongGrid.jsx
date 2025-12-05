@@ -9,7 +9,7 @@ const SongGrid = ({
   downloadUrl,
   image,
   id,
-  song, // yaha song == songList (queue) hai, same jaise baaki components me
+  song,
 }) => {
   const { playMusic } = useContext(MusicContext);
 
@@ -19,49 +19,39 @@ const SongGrid = ({
     ? artists.primary.map((artist) => artist.name).join(", ")
     : "Unknown Artist";
 
-  // Safe audio URL nikal lo (array ho ya direct string)
+  // Safe audio URL (array ho ya string)
   const audioUrl = Array.isArray(downloadUrl)
     ? downloadUrl[4]?.url || downloadUrl[0]?.url
     : downloadUrl;
 
-  const convertTime = (seconds) => {
-    if (!seconds || typeof seconds !== "number") return "0:00";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = (seconds % 60).toString().padStart(2, "0");
-    return `${minutes}:${remainingSeconds}`;
-  };
-
   return (
     <div
-      className="group card flex items-center gap-3 min-w-[15rem] lg:min-w-[19rem] px-3 py-3 rounded-2xl cursor-pointer
-                 hover:border-groovia-accent hover:bg-white/5 transition-all duration-300"
       onClick={() =>
         playMusic(audioUrl, name, duration, imageUrl, id, artists, song)
       }
+      className="card group w-[8.3rem] lg:w-[9.5rem] flex-shrink-0 rounded-2xl overflow-hidden
+                 bg-groovia-card/70 hover:bg-groovia-card border border-groovia-border
+                 hover:border-groovia-accent cursor-pointer transition-all duration-300
+                 hover:-translate-y-1 hover:shadow-groovia"
     >
-      {/* Left: Artwork */}
-      <div className="flex-shrink-0">
+      {/* Cover – same vibe as New Songs */}
+      <div className="relative w-full aspect-square overflow-hidden">
         <img
           src={imageUrl}
           alt={name}
-          className="w-12 h-12 lg:w-14 lg:h-14 rounded-xl object-cover"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 
-      {/* Middle: Title + Artist */}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-sm lg:text-base truncate">
+      {/* Text area */}
+      <div className="px-2 pt-2 pb-3 flex flex-col gap-1">
+        <h3 className="font-semibold text-xs lg:text-sm truncate">
           {name ? he.decode(name) : "Empty"}
         </h3>
-        <p className="text-xs lg:text-sm text-gray-400 truncate">
+        <p className="text-[11px] lg:text-xs text-gray-400 truncate">
           {he.decode(artistNames)}
         </p>
       </div>
-
-      {/* Right: Duration */}
-      <span className="ml-2 text-xs lg:text-sm text-gray-400 flex-shrink-0">
-        {convertTime(duration)}
-      </span>
     </div>
   );
 };

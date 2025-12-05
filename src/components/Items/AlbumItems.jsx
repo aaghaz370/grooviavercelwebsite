@@ -147,4 +147,5 @@ const AlbumItems = ({ name, artists, id, image }) => {
   );
 };
 
+
 export default AlbumItems;

@@ -14,30 +14,34 @@ const TrendingCard = ({ name, artists, duration, downloadUrl, image, id, song })
 
   return (
     <div
-      className="group cursor-pointer transition-all duration-300"
+      className="group cursor-pointer transition-all duration-300 flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5"
       onClick={() =>
         playMusic(downloadUrl, name, duration, imageUrl, id, artists, song)
       }
     >
-      {/* Square Image Container */}
-      <div className="relative aspect-square overflow-hidden rounded-lg mb-2">
+      {/* Thumbnail left – like YT Music list */}
+      <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
         <img
           src={imageUrl}
           alt={name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {/* Subtle overlay on hover */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
       </div>
-      
-      {/* Text Area - Compact */}
-      <div className="px-1">
-        <h3 className="font-bold text-sm truncate mb-0.5 text-white">
+
+      {/* Text right */}
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-sm truncate text-white">
           {name ? he.decode(name) : "Empty"}
         </h3>
         <p className="text-xs text-gray-400 truncate font-normal">
           {he.decode(artistNames)}
         </p>
+      </div>
+
+      {/* Three-dot menu style icon on right */}
+      <div className="ml-2 text-gray-400 text-xl opacity-0 group-hover:opacity-100 select-none">
+        ⋮
       </div>
     </div>
   );

@@ -203,7 +203,7 @@ const MainSection = () => {
 
       <br />
 
-      {/* Today Trending - YT Music Style: 4 rows × 3 columns */}
+      {/* Today Trending - 4 cards vertical stack, scroll for next 4 */}
       <div className="flex flex-col w-full">
         <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
           Today Trending
@@ -220,7 +220,7 @@ const MainSection = () => {
               style={{ 
                 gridTemplateRows: 'repeat(4, 1fr)',
                 gridAutoFlow: 'column',
-                gridAutoColumns: 'calc(30% - 8px)'
+                gridAutoColumns: '85%'
               }}
             >
               {trending.map((song) => (

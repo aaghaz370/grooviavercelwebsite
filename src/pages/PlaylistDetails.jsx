@@ -175,10 +175,10 @@ const PlaylistDetails = () => {
         </div>
 
         <div>
-          <h2 className="lg:mt-8   mt-2 mb-2 ml-2 text-2xl font-semibold ">
+          <h2 className="lg:mt-8 mt-2 mb-2 ml-2 text-2xl font-semibold">
             Top Songs
           </h2>
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-2">
             {playlistData.songs && playlistData.songs.length > 0 ? (
               playlistData.songs.map((song) => (
                 <SongsList key={song.id} {...song} song={list} />

@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import he from "he";
 
-import { fetchAlbumByID } from "../../fetch"; // path same jaisa MainSection me hai
-import MusicContext from "../../context/MusicContext"; // agar path alag ho to yahan adjust kar lena
+import { fetchAlbumByID } from "../../fetch"; // path adjust kar lena agar alag ho
+import MusicContext from "../../context/MusicContext";
 
 const AlbumItems = ({ name, artists, id, image }) => {
   const { playMusic } = useContext(MusicContext);
@@ -22,8 +22,7 @@ const AlbumItems = ({ name, artists, id, image }) => {
     const loadAlbumSongs = async () => {
       try {
         const data = await fetchAlbumByID(id);
-        // Backend structure ke hisaab se yahan adjust kar sakte ho:
-        const albumData = data?.data || data;
+        const albumData = data?.data || data; // backend ke hisaab se adjust kar sakte ho
         const songs = albumData?.songs || [];
         setTopSongs(songs.slice(0, 3));
         setSongCount(songs.length);
@@ -74,9 +73,8 @@ const AlbumItems = ({ name, artists, id, image }) => {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col gap-4 p-4 lg:p-5">
-        {/* Top section: cover + text + play button */}
+        {/* Top section: cover + text + button */}
         <div className="flex gap-4 items-center">
-          {/* Album cover + link */}
           <Link
             to={`/albums/${id}`}
             className="flex-shrink-0 rounded-xl overflow-hidden w-16 h-16 lg:w-20 lg:h-20"
@@ -88,7 +86,6 @@ const AlbumItems = ({ name, artists, id, image }) => {
             />
           </Link>
 
-          {/* Album info */}
           <div className="flex flex-col justify-center min-w-0">
             <Link to={`/albums/${id}`} className="hover:underline">
               <h3 className="text-lg lg:text-xl font-semibold text-white truncate">
@@ -103,7 +100,6 @@ const AlbumItems = ({ name, artists, id, image }) => {
             </p>
           </div>
 
-          {/* Play button – full album redirect (same as image) */}
           <Link
             to={`/albums/${id}`}
             className="ml-auto rounded-full bg-white/15 hover:bg-white/25 backdrop-blur px-4 py-2 text-sm font-semibold text-white hidden sm:inline-flex"
@@ -133,7 +129,7 @@ const AlbumItems = ({ name, artists, id, image }) => {
                 </span>
               </button>
             );
-          ))}
+          })}
 
           {/* Agar 3 songs kam ho to bhi layout stable rahe */}
           {topSongs.length === 0 && (
@@ -146,6 +142,5 @@ const AlbumItems = ({ name, artists, id, image }) => {
     </div>
   );
 };
-
 
 export default AlbumItems;

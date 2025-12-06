@@ -77,20 +77,15 @@ const MainSection = () => {
         setLoading(true);
         setError(null);
 
-        // sab main calls PARALLEL me
-        const [
-          trendingPl,
-          latestPl,
-          albumRes,
-          playlistRes,
-        ] = await Promise.all([
-          fetchplaylistsByID(110858205), // Today Trending
-          fetchplaylistsByID(6689255),   // New Songs
-          searchAlbumByQuery("latest"),  // Top albums
-          searchPlayListByQuery("Top"),  // Top playlists
-        ]);
+        const [trendingPl, latestPl, albumRes, playlistRes] =
+          await Promise.all([
+            fetchplaylistsByID(110858205), // Today Trending
+            fetchplaylistsByID(6689255), // New Songs
+            searchAlbumByQuery("latest"), // Top albums
+            searchPlayListByQuery("Top"), // Top playlists
+          ]);
 
-        const artist = await artistData; // mostly sync / cheap
+        const artist = await artistData;
 
         if (!isMounted) return;
 
@@ -202,22 +197,44 @@ const MainSection = () => {
       (song, index, self) => index === self.findIndex((t) => t.id === song.id)
     );
     setList(uniqueSongs);
-    // deliberately recentlyPlayedSongs ko dependency me nahi dala
   }, [trending, latestSongs, loveSongs]);
 
   // ---------- LOADING / ERROR UI ----------
   if (loading) {
     return (
       <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center gap-4 px-4">
-        <div className="text-xl lg:text-2xl w-full font-semibold ml-[1rem] lg:ml-[5.5rem] m-1">
-  {getGreeting()}
-</div>
-        {/* chota skeleton, taaki blank black na lage */}
-        <div className="w-full max-w-5xl space-y-4 animate-pulse">
-          <div className="h-5 w-32 rounded-full bg-white/10" />
-          <div className="h-32 rounded-2xl bg-white/5" />
+        {/* Greeting: ab mobile + desktop dono par */}
+        <div className="text-xl lg:text-2xl w-full max-w-5xl font-semibold ml-[0.5rem] lg:ml-[1rem]">
+          {getGreeting()}
+        </div>
+
+        {/* Skeleton layout – Recently Played + New Songs style cards */}
+        <div className="w-full max-w-5xl mt-2 space-y-6 animate-pulse">
+          {/* Recently Played title */}
           <div className="h-5 w-40 rounded-full bg-white/10" />
-          <div className="h-32 rounded-2xl bg-white/5" />
+
+          {/* Recently Played cards skeleton */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-40 sm:h-48 rounded-2xl bg-white/5"
+              />
+            ))}
+          </div>
+
+          {/* New Songs title */}
+          <div className="h-5 w-32 rounded-full bg-white/10 mt-2" />
+
+          {/* New Songs row skeleton */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-28 sm:h-32 rounded-2xl bg-white/5"
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -236,7 +253,8 @@ const MainSection = () => {
   // ---------- NORMAL UI ----------
   return (
     <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center overflow-x-clip gap-4">
-      <div className="hidden lg:block text-2xl w-full font-semibold lg:ml-[5.5rem] m-1">
+      {/* Greeting: yahan bhi mobile + desktop dono par */}
+      <div className="text-xl lg:text-2xl w-full font-semibold ml-[1rem] lg:ml-[5.5rem] m-1">
         {getGreeting()}
       </div>
 

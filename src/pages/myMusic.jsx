@@ -256,37 +256,33 @@ const MyMusic = () => {
           )}
 
           
-          {/* LIKED ALBUMS – Top Albums jaisa card, same size for all */}
+          {/* LIKED ALBUMS – exactly like Top Albums section */}
 {likedAlbums.length > 0 && (
   <section className="flex flex-col gap-2">
     <h1 className="text-lg lg:text-xl font-semibold mb-1">
       Liked Albums
     </h1>
 
-    <div className="flex mx-1 lg:mx-8 items-center gap-3">
+    <div className="flex items-center gap-3 px-3 lg:px-8">
+      {/* Left arrow */}
       <MdOutlineKeyboardArrowLeft
-        className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+        className="arrow-btn text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
         onClick={() => scrollLeft(albumsScrollRef)}
       />
 
-      {/* Scrollable row of album cards */}
+      {/* Scrollable row – same as Home Top Albums */}
       <div
-        className="flex overflow-x-auto scroll-hide px-3 lg:px-0 scroll-smooth gap-3 lg:gap-4"
         ref={albumsScrollRef}
+        className="grid grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full scroll-smooth"
       >
         {likedAlbums.map((album) => (
-          <div
-            key={album.id}
-            className="flex-none w-[16rem] max-w-[16rem]"
-          >
-            {/* Yahi component Top Albums me hai – ye hi 3 songs tak list dikhayega */}
-            <AlbumItems {...album} />
-          </div>
+          <AlbumItems key={album.id} {...album} />
         ))}
       </div>
 
+      {/* Right arrow */}
       <MdOutlineKeyboardArrowRight
-        className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+        className="arrow-btn text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
         onClick={() => scrollRight(albumsScrollRef)}
       />
     </div>

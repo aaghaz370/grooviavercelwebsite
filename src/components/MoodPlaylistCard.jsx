@@ -11,7 +11,9 @@ const MoodPlaylistCard = ({ id, name, description, moodTag, image }) => {
         relative 
         flex-shrink-0 
         w-full 
-        lg:w-[520px]
+        lg:w-[480px]
+        h-[260px]           /* ⬅️ height badha di */
+        lg:h-[280px]        /* ⬅️ desktop pe thoda aur tall */
         rounded-3xl 
         overflow-hidden 
         bg-groovia-card
@@ -20,42 +22,34 @@ const MoodPlaylistCard = ({ id, name, description, moodTag, image }) => {
         duration-300
       "
     >
-      {/* Aspect-ratio wrapper: mobile ~3:4, desktop ~2:3 */}
-      <div className="relative w-full h-0 pb-[80%] lg:pb-[65%]">
-        {/* Background image – full image visible, no cutting */}
-        <img
-          src={imageUrl}
-          alt={name}
-          className="
-            absolute inset-0 
-            w-full h-full 
-            object-contain
-          "
-        />
+      {/* Background image */}
+      <img
+        src={imageUrl}
+        alt={name}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
 
-        {/* Soft overlay like YT Music */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/45 to-black/10" />
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/40 to-black/10" />
 
-        {/* Text content */}
-        <div className="absolute inset-0 z-10 flex flex-col justify-between px-4 py-4">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-lg lg:text-xl font-semibold tracking-tight">
-              {name}
-            </h3>
-
-            {description && (
-              <p className="text-xs lg:text-sm text-white/80 leading-snug">
-                {description}
-              </p>
-            )}
-          </div>
-
-          {moodTag && (
-            <p className="text-[11px] lg:text-xs italic text-white/85">
-              {moodTag}
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-between h-full px-4 py-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-lg lg:text-xl font-semibold tracking-tight">
+            {name}
+          </h3>
+          {description && (
+            <p className="text-xs lg:text-sm text-white/80 line-clamp-2">
+              {description}
             </p>
           )}
         </div>
+
+        {moodTag && (
+          <p className="text-[11px] lg:text-xs italic text-white/85">
+            {moodTag}
+          </p>
+        )}
       </div>
     </Link>
   );

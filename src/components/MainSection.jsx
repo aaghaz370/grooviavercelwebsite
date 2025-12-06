@@ -24,6 +24,7 @@ const MainSection = () => {
   const [albums, setAlbums] = useState([]);
   const [artists, setArtists] = useState([]);
   const [playlists, setPlaylists] = useState([]);
+  const [newReleases, setNewReleases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [list, setList] = useState({});
@@ -256,6 +257,44 @@ const MainSection = () => {
       {/* Mood Playlists – big cards (Daily discover style) */}
       <MoodSection />
 
+     {/* NEW RELEASES */}
+{newReleases.length > 0 && (
+  <div className="flex flex-col w-full">
+    <h2 className="m-4 mt-2 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
+      New Releases
+    </h2>
+
+    <div className="flex justify-center items-center gap-2 w-full">
+      <MdOutlineKeyboardArrowLeft
+        className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
+        onClick={() => scrollLeft(newReleaseScrollRef)}
+      />
+
+      <div className="w-full overflow-hidden pl-2 lg:pl-0">
+        <div
+          className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth pr-2"
+          ref={newReleaseScrollRef}
+          style={{
+            gridTemplateRows: "repeat(4, 1fr)",
+            gridAutoFlow: "column",
+            gridAutoColumns: "85%",
+          }}
+        >
+          {newReleases.map((song) => (
+            <TrendingCard key={song.id} {...song} song={list} />
+          ))}
+        </div>
+      </div>
+
+      <MdOutlineKeyboardArrowRight
+        className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
+        onClick={() => scrollRight(newReleaseScrollRef)}
+      />
+    </div>
+  </div>
+)}
+
+      
       {/* Golden Era Playlists – new section */}
     <GoldenEraSection />
 
@@ -287,5 +326,21 @@ const MainSection = () => {
     </div>
   );
 };
+
+useEffect(() => {
+  const loadNewReleases = async () => {
+    try {
+      const data = await fetchNewReleases();
+      const songs = data?.new_songs || data?.new_trending || [];
+
+      // 12 songs only
+      setNewReleases(songs.slice(0, 12));
+    } catch (err) {
+      console.error("New Releases Fetch Error:", err);
+    }
+  };
+
+  loadNewReleases();
+}, []);
 
 export default MainSection;

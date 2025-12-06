@@ -88,6 +88,71 @@ export const moodPlaylists = [
       },
     ],
   },
+
+  
+  {
+    id: "1208889681",
+    name: "Monsoon Lofi Beats",
+    description: "Lofi song listen alone",
+    moodTag: "Lofi · Bollywood",
+    image: [
+      {
+        quality: "50x50",
+        url: "https://c.saavncdn.com/editorial/MonsoonLofiBeats_20231129150222.jpg",
+      },
+      {
+        quality: "150x150",
+        url: "https://c.saavncdn.com/editorial/MonsoonLofiBeats_20231129150222.jpg",
+      },
+      {
+        quality: "500x500",
+        url: "https://c.saavncdn.com/editorial/MonsoonLofiBeats_20231129150222.jpg",
+      },
+    ],
+  },
+
+  
+  {
+    id: "1074590003",
+    name: "Tamil BGM",
+    description: "High class tamil bgm",
+    moodTag: "Bgm · Tamil",
+    image: [
+      {
+        quality: "50x50",
+        url: "https://c.saavncdn.com/editorial/TamilBGM_20251204081332.jpg",
+      },
+      {
+        quality: "150x150",
+        url: "https://c.saavncdn.com/editorial/TamilBGM_20251204081332.jpg",
+      },
+      {
+        quality: "500x500",
+        url: "https://c.saavncdn.com/editorial/TamilBGM_20251204081332.jpg",
+      },
+    ],
+  },
+
+  {
+    id: "76182059",
+    name: "Let's Play - Anirudh Ravichander",
+    description: "Let's Play the Biggest Hits of Anirudh",
+    moodTag: "Modern · Anirudh",
+    image: [
+      {
+        quality: "50x50",
+        url: "https://c.saavncdn.com/editorial/Let_sPlayAnirudhRavichanderTamil_20250217095503.jpg?bch=1764979381",
+      },
+      {
+        quality: "150x150",
+        url: "https://c.saavncdn.com/editorial/Let_sPlayAnirudhRavichanderTamil_20250217095503.jpg?bch=1764979381",
+      },
+      {
+        quality: "500x500",
+        url: "https://c.saavncdn.com/editorial/Let_sPlayAnirudhRavichanderTamil_20250217095503.jpg?bch=1764979381",
+      },
+    ],
+  },
   // aur bhi moods yahan add kar sakta hai:
   // { id, name, description, moodTag, image: [...] }
 ];

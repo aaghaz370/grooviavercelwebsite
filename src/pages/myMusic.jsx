@@ -255,124 +255,43 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED ALBUMS – Top Albums jaisa card, fixed size + sirf top 3 tracks */}
-          {likedAlbums.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h1 className="text-lg lg:text-xl font-semibold mb-1">
-                Liked Albums
-              </h1>
+          
+          {/* LIKED ALBUMS – Top Albums jaisa card, same size for all */}
+{likedAlbums.length > 0 && (
+  <section className="flex flex-col gap-2">
+    <h1 className="text-lg lg:text-xl font-semibold mb-1">
+      Liked Albums
+    </h1>
 
-              <div className="flex mx-1 lg:mx-8 items-center gap-3">
-                <MdOutlineKeyboardArrowLeft
-                  className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                  onClick={() => scrollLeft(albumsScrollRef)}
-                />
+    <div className="flex mx-1 lg:mx-8 items-center gap-3">
+      <MdOutlineKeyboardArrowLeft
+        className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+        onClick={() => scrollLeft(albumsScrollRef)}
+      />
 
-                <div
-                  className="flex overflow-x-auto scroll-hide px-3 lg:px-0 scroll-smooth gap-3 lg:gap-4"
-                  ref={albumsScrollRef}
-                >
-                  {likedAlbums.map((album) => {
-                    const tracks = Array.isArray(album.songs)
-                      ? album.songs.slice(0, 3)
-                      : [];
+      {/* Scrollable row of album cards */}
+      <div
+        className="flex overflow-x-auto scroll-hide px-3 lg:px-0 scroll-smooth gap-3 lg:gap-4"
+        ref={albumsScrollRef}
+      >
+        {likedAlbums.map((album) => (
+          <div
+            key={album.id}
+            className="flex-none w-[16rem] max-w-[16rem]"
+          >
+            {/* Yahi component Top Albums me hai – ye hi 3 songs tak list dikhayega */}
+            <AlbumItems {...album} />
+          </div>
+        ))}
+      </div>
 
-                    const albumTitle =
-                      album.name ||
-                      album.title ||
-                      album.album ||
-                      "Unknown Album";
-
-                    const albumArtist =
-                      album.primaryArtists ||
-                      album.artist ||
-                      album.subtitle ||
-                      "";
-
-                    const songsCount =
-                      album.songCount ||
-                      (Array.isArray(album.songs) ? album.songs.length : 0);
-
-                    const cover =
-                      album.image || album.thumbnail || "/Unknown.png";
-
-                    return (
-                      <div
-                        key={album.id}
-                        className="flex-none w-[16rem] max-w-[16rem]"
-                      >
-                        <Link to={`/albums/${album.id}`}>
-                          <div className="relative h-[14rem] rounded-[1.5rem] bg-gradient-to-br from-white/10 to-white/5 shadow-lg overflow-hidden p-3 flex flex-col">
-                            {/* Top: cover + album info */}
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={cover}
-                                alt={albumTitle}
-                                className="h-14 w-14 rounded-lg object-cover shadow-md"
-                              />
-                              <div className="flex flex-col overflow-hidden">
-                                <span className="text-sm font-semibold truncate">
-                                  {albumTitle}
-                                </span>
-                                {albumArtist && (
-                                  <span className="text-xs opacity-80 truncate">
-                                    {albumArtist}
-                                  </span>
-                                )}
-                                {songsCount > 0 && (
-                                  <span className="text-[0.7rem] opacity-60">
-                                    {songsCount} song
-                                    {songsCount > 1 ? "s" : ""}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Bottom: top 3 tracks only */}
-                            {tracks.length > 0 && (
-                              <div className="mt-3 bg-black/15 rounded-2xl px-3 py-2 flex-1 overflow-hidden">
-                                <div className="space-y-1.5">
-                                  {tracks.map((t) => {
-                                    const trackName = t.name || t.title;
-                                    const trackArtist =
-                                      (t.artists?.primary || [])
-                                        .map((a) => a.name)
-                                        .join(", ") ||
-                                      t.subtitle ||
-                                      "";
-                                    return (
-                                      <div
-                                        key={t.id}
-                                        className="text-xs flex flex-col truncate"
-                                      >
-                                        <span className="font-medium truncate">
-                                          {trackName}
-                                        </span>
-                                        {trackArtist && (
-                                          <span className="opacity-70 truncate">
-                                            {trackArtist}
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <MdOutlineKeyboardArrowRight
-                  className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                  onClick={() => scrollRight(albumsScrollRef)}
-                />
-              </div>
-            </section>
-          )}
+      <MdOutlineKeyboardArrowRight
+        className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+        onClick={() => scrollRight(albumsScrollRef)}
+      />
+    </div>
+  </section>
+)}
 
           {/* LIKED PLAYLISTS */}
           {likedPlaylists.length > 0 && (

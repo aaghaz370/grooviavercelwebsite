@@ -147,13 +147,27 @@ export const fetchArtistByID = async (ID) => {
 };
 
 
+// NEW RELEASES – latest songs from JioSaavn
 export const fetchNewReleases = async () => {
   const res = await fetch(
     "https://www.jiosaavn.com/api.php?__call=content.getAlbums&sort_order=desc&page=1&n=50&_format=json&_marker=0"
   );
+
   let text = await res.text();
+  // JioSaavn JSONP clean
   text = text.replace(/^\w+\(/, "").replace(/\);?$/, "");
-  return JSON.parse(text);
+
+  const json = JSON.parse(text);
+
+  // yahan se tum songs nikaloge
+  // new_trending / new_songs / albums me se jo aaye
+  const songs =
+    json?.new_songs ||
+    json?.new_trending ||
+    json?.albums?.map((a) => a.songs?.[0]).filter(Boolean) ||
+    [];
+
+  return songs;
 };
 
 

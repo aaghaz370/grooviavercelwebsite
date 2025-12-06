@@ -347,26 +347,7 @@ const MainSection = () => {
         <AlbumSlider albums={albums} />
       </div>
 
-      {/* Top Artists */}
-      <div className="w-full">
-        <h2 className="pr-1 m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
-          Top Artists
-        </h2>
-        <ArtistSlider artists={artists} />
-      </div>
-
-      {/* Top Playlists */}
-      <div className="w-full flex flex-col gap-3">
-        <h2 className="m-1 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[2.8rem]">
-          Top Playlists
-        </h2>
-        <PlaylistSlider playlists={playlists} />
-      </div>
-    </div>
-  );
-};
-
-{/* ===================== TRENDING ON SOCIALS ===================== */}
+      {/* ===================== TRENDING ON SOCIALS ===================== */}
 {nowTrending.length > 0 && (
   <div className="flex flex-col w-full">
     <h2 className="m-4 mt-2 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
@@ -402,5 +383,26 @@ const MainSection = () => {
     </div>
   </div>
 )}
+
+      {/* Top Artists */}
+      <div className="w-full">
+        <h2 className="pr-1 m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
+          Top Artists
+        </h2>
+        <ArtistSlider artists={artists} />
+      </div>
+
+      {/* Top Playlists */}
+      <div className="w-full flex flex-col gap-3">
+        <h2 className="m-1 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[2.8rem]">
+          Top Playlists
+        </h2>
+        <PlaylistSlider playlists={playlists} />
+      </div>
+    </div>
+  );
+};
+
+
 
 export default MainSection;

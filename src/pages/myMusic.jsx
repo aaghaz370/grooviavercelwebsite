@@ -292,43 +292,50 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED ALBUMS – old AlbumItems style + API se songs */}
-          {likedAlbums.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h1 className="text-2xl font-semibold lg:ml-4 p-4">
-                Liked Albums
-              </h1>
+          {/* LIKED ALBUMS – AlbumItems ka size same rahega */}
+{likedAlbums.length > 0 && (
+  <section className="flex flex-col gap-2">
+    <h1 className="text-2xl font-semibold lg:ml-4 p-4">
+      Liked Albums
+    </h1>
 
-              <div className="flex mx-1 lg:mx-8 items-center gap-3">
-                <MdOutlineKeyboardArrowLeft
-                  className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                  onClick={() => scrollLeft(albumsScrollRef)}
-                />
+    {/* relative wrapper so arrows correct jagah rahein */}
+    <div className="relative mx-1 lg:mx-8">
+      <MdOutlineKeyboardArrowLeft
+        className="arrow-btn absolute left-0 top-1/2 -translate-y-1/2 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+        onClick={() => scrollLeft(albumsScrollRef)}
+      />
 
-                <div
-                  className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-2 overflow-x-auto scroll-hide w-max px-3 lg:px-0 scroll-smooth"
-                  ref={albumsScrollRef}
-                >
-                  {likedAlbums.map((album) => {
-                    const songsFromApi =
-                      albumTrackMap[album.id] || album.songs || [];
+      {/* Yaha pe GRID hata diya, FLEX use kiya */}
+      <div
+        ref={albumsScrollRef}
+        className="flex overflow-x-auto scroll-hide gap-3 lg:gap-4 px-3 lg:px-0 scroll-smooth"
+      >
+        {likedAlbums.map((album) => {
+          const songsFromApi =
+            albumTrackMap[album.id] || album.songs || [];
 
-                    const mergedAlbum = {
-                      ...album,
-                      songs: songsFromApi,
-                    };
+          const mergedAlbum = {
+            ...album,
+            songs: songsFromApi,
+          };
 
-                    return <AlbumItems key={album.id} {...mergedAlbum} />;
-                  })}
-                </div>
+          return (
+            // flex-none => card ka apna width fix rahe
+            <div key={album.id} className="flex-none">
+              <AlbumItems {...mergedAlbum} />
+            </div>
+          );
+        })}
+      </div>
 
-                <MdOutlineKeyboardArrowRight
-                  className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                  onClick={() => scrollRight(albumsScrollRef)}
-                />
-              </div>
-            </section>
-          )}
+      <MdOutlineKeyboardArrowRight
+        className="arrow-btn absolute right-0 top-1/2 -translate-y-1/2 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+        onClick={() => scrollRight(albumsScrollRef)}
+      />
+    </div>
+  </section>
+)}
 
           {/* LIKED PLAYLISTS */}
           {likedPlaylists.length > 0 && (

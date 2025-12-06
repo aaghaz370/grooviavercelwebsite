@@ -1,12 +1,13 @@
 // src/pages/MyMusic.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { Link } from "react-router";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
 import SongsList from "../components/SongsList";
 import PlaylistItems from "../components/Items/PlaylistItems";
-import { fetchAlbumByID } from "../../fetch"; // path tumhare project ka
+import { fetchAlbumByID } from "../../fetch"; // abhi rehne de, future me use kar sakta hai
+import MusicContext from "../context/MusicContext";
 
 import { FaHeart } from "react-icons/fa6";
 
@@ -27,6 +28,9 @@ const MyMusic = () => {
   const [selectedSongIds, setSelectedSongIds] = useState([]);
 
   const albumsScrollRef = useRef(null);
+
+  // >>> Music context (Play all / Shuffle ke liye) <<<
+  const { playMusic, setSongs } = useContext(MusicContext);
 
   // --------- LocalStorage se data load ----------
   useEffect(() => {
@@ -110,14 +114,62 @@ const MyMusic = () => {
 
   const sortedLikedSongs = getSortedSongs();
 
+  // >>> PLAY ALL / SHUFFLE FIX <<<
+  const getAudioSource = (song) => {
+    if (!song) return null;
+    if (song.downloadUrl) {
+      // jioSaavn object jaisa
+      if (Array.isArray(song.downloadUrl)) {
+        return song.downloadUrl[4]?.url || song.downloadUrl[0]?.url;
+      }
+      return song.downloadUrl;
+    }
+    return song.audio; // hum log ne kahin-kahin audio store kiya hoga
+  };
+
   const handlePlayAll = () => {
     if (!sortedLikedSongs.length) return;
-    // queue logic tum baad me add kar sakte ho
+    const first = sortedLikedSongs[0];
+    const src = getAudioSource(first);
+    if (!src) return;
+
+    // queue set karo
+    setSongs(sortedLikedSongs);
+    // playMusic(downloadUrl, name, duration, image, id, artists, songList)
+    playMusic(
+      src,
+      first.name,
+      first.duration,
+      first.image,
+      first.id,
+      first.artists,
+      sortedLikedSongs
+    );
   };
 
   const handleShuffleAll = () => {
     if (!sortedLikedSongs.length) return;
-    // shuffle logic baad me
+
+    const shuffled = [...sortedLikedSongs];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const first = shuffled[0];
+    const src = getAudioSource(first);
+    if (!src) return;
+
+    setSongs(shuffled);
+    playMusic(
+      src,
+      first.name,
+      first.duration,
+      first.image,
+      first.id,
+      first.artists,
+      shuffled
+    );
   };
 
   // playlist creation
@@ -272,58 +324,59 @@ const MyMusic = () => {
           )}
 
           {/* LIKED ALBUMS – playlist style cards, single horizontal row */}
-{likedAlbums.length > 0 && (
-  <section className="flex flex-col gap-2">
-    <h1 className="text-lg lg:text-xl font-semibold mb-1">
-      Liked Albums
-    </h1>
+          {likedAlbums.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h1 className="text-lg lg:text-xl font-semibold mb-1">
+                Liked Albums
+              </h1>
 
-    <div
-      className="flex gap-3 lg:gap-4 overflow-x-auto scroll-hide pb-1"
-    >
-      {likedAlbums.map((album) => {
-        const title =
-          album.name || album.title || album.album || "Unknown Album";
+              <div className="flex gap-3 lg:gap-4 overflow-x-auto scroll-hide pb-1">
+                {likedAlbums.map((album) => {
+                  const title =
+                    album.name ||
+                    album.title ||
+                    album.album ||
+                    "Unknown Album";
 
-        const artist =
-          album.primaryArtists ||
-          album.artist ||
-          album.subtitle ||
-          "";
+                  const artist =
+                    album.primaryArtists ||
+                    album.artist ||
+                    album.subtitle ||
+                    "";
 
-        const cover = album.image || album.thumbnail || "/Unknown.png";
+                  const cover =
+                    album.image || album.thumbnail || "/Unknown.png";
 
-        return (
-          <Link key={album.id} to={`/albums/${album.id}`}>
-            <div className="group cursor-pointer flex-none w-[9.5rem] sm:w-[10.5rem]">
-              {/* square image – playlist style */}
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5">
-                <img
-                  src={cover}
-                  alt={title}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+                  return (
+                    <Link key={album.id} to={`/albums/${album.id}`}>
+                      <div className="group cursor-pointer flex-none w-[9.5rem] sm:w-[10.5rem]">
+                        {/* square image – playlist style */}
+                        <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5">
+                          <img
+                            src={cover}
+                            alt={title}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </div>
+
+                        {/* text */}
+                        <div className="mt-1.5 flex flex-col">
+                          <span className="text-sm font-semibold truncate">
+                            {title}
+                          </span>
+                          {artist && (
+                            <span className="text-xs opacity-70 truncate">
+                              {artist}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
-
-              {/* text */}
-              <div className="mt-1.5 flex flex-col">
-                <span className="text-sm font-semibold truncate">
-                  {title}
-                </span>
-                {artist && (
-                  <span className="text-xs opacity-70 truncate">
-                    {artist}
-                  </span>
-                )}
-              </div>
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-  </section>
-)}
-
+            </section>
+          )}
 
           {/* -------- LIKED PLAYLISTS -------- */}
           {likedPlaylists.length > 0 && (
@@ -465,14 +518,17 @@ const MyMusic = () => {
             </div>
 
             <div className="flex justify-end gap-2 mt-2">
+              {/* Cancel button FIX */}
               <button
-                onClick={() => setIsCreatePlaylist(false)}
+                onClick={() => setIsCreateModalOpen(false)}
                 className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
               >
                 Cancel
               </button>
+
+              {/* Create button FIX – ab actually playlist banayega */}
               <button
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={handleCreatePlaylistSave}
                 className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"
               >
                 Create

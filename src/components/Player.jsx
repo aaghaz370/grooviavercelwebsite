@@ -1,3 +1,4 @@
+// src/components/Player.jsx
 import { useContext, useRef, useState, useEffect } from "react";
 import { IoIosClose, IoMdSkipBackward, IoMdSkipForward } from "react-icons/io";
 import { IoShareSocial } from "react-icons/io5";
@@ -31,6 +32,9 @@ const Player = () => {
     repeatMode,
     toggleRepeatMode,
     downloadSong,
+    // 💤 SLEEP TIMER from context
+    sleepTimerMinutes,
+    setSleepTimer,
   } = useContext(MusicContext);
 
   const [volume, setVolume] = useState(() => {
@@ -339,6 +343,14 @@ const Player = () => {
 
   const albumId = detail?.album?.id;
   const albumName = detail?.album?.name || "";
+
+  // ⭐ Sleep timer buttons
+  const sleepOptions = [
+    { label: "Off", value: null },
+    { label: "15 min", value: 15 },
+    { label: "30 min", value: 30 },
+    { label: "60 min", value: 60 },
+  ];
 
   return (
     <div
@@ -700,6 +712,34 @@ const Player = () => {
                                 })
                               }
                             />
+                          )}
+                        </div>
+
+                        {/* 💤 SLEEP TIMER CONTROLS (MAX VIEW) */}
+                        <div className="flex flex-col items-center mt-1 mb-2">
+                          <div className="flex items-center gap-2 text-[0.7rem] opacity-80">
+                            <span className="uppercase tracking-[0.16em] text-[0.6rem] opacity-70">
+                              Sleep timer
+                            </span>
+                            {sleepOptions.map((opt) => (
+                              <button
+                                key={opt.label}
+                                onClick={() => setSleepTimer(opt.value)}
+                                className={`px-3 py-1 rounded-full border text-[0.65rem] transition ${
+                                  (opt.value === null && !sleepTimerMinutes) ||
+                                  sleepTimerMinutes === opt.value
+                                    ? "bg-white text-black border-white"
+                                    : "bg-white/5 border-white/20 hover:bg-white/10"
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                          {sleepTimerMinutes && (
+                            <span className="mt-1 text-[0.65rem] opacity-60">
+                              Will stop after ~{sleepTimerMinutes} min
+                            </span>
                           )}
                         </div>
                       </div>

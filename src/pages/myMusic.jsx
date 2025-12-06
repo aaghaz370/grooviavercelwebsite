@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
 import SongsList from "../components/SongsList";
-import { fetchAlbumByID } from "../../fetch"; // path apne project ke hisaab se
+import { fetchAlbumByID } from "../../fetch"; // path sahi hai to rehne do
 
 import { FaHeart } from "react-icons/fa6";
 import {
@@ -13,6 +13,7 @@ import {
 } from "react-icons/md";
 
 import PlaylistItems from "../components/Items/PlaylistItems";
+import AlbumItems from "../components/Items/AlbumItems";
 import { Link } from "react-router";
 
 const MyMusic = () => {
@@ -32,34 +33,6 @@ const MyMusic = () => {
   const [selectedSongIds, setSelectedSongIds] = useState([]);
 
   const albumsScrollRef = useRef(null);
-
-
-  // har liked album ke liye tracks fetch karo (sirf ek baar)
-  useEffect(() => {
-    const loadAlbumSongs = async () => {
-      try {
-        const missing = likedAlbums.filter(
-          (alb) => alb.id && !albumTrackMap[alb.id]
-        );
-
-        for (const alb of missing) {
-          const res = await fetchAlbumByID(alb.id);
-          const songs = res?.data?.[0]?.songs || [];
-
-          setAlbumTrackMap((prev) => ({
-            ...prev,
-            [alb.id]: songs,
-          }));
-        }
-      } catch (err) {
-        console.error("Error loading album songs for MyMusic:", err);
-      }
-    };
-
-    if (likedAlbums.length) {
-      loadAlbumSongs();
-    }
-  }, [likedAlbums, albumTrackMap]);
 
   // load liked + playlists from localStorage
   useEffect(() => {
@@ -101,6 +74,42 @@ const MyMusic = () => {
 
     localStorage.setItem("customPlaylists", JSON.stringify(migratedCustom));
   }, []);
+
+  // har liked album ke liye tracks fetch karo (sirf ek baar per album)
+  useEffect(() => {
+    const loadAlbumSongs = async () => {
+      if (!likedAlbums.length) return;
+
+      // jo album abhi map me nahi hai sirf unhi ko fetch karo
+      const idsToFetch = likedAlbums
+        .filter((alb) => alb.id && !albumTrackMap[alb.id])
+        .map((alb) => alb.id);
+
+      if (!idsToFetch.length) return;
+
+      try {
+        const responses = await Promise.all(
+          idsToFetch.map((id) => fetchAlbumByID(id).catch(() => null))
+        );
+
+        const nextMap = {};
+        responses.forEach((res, idx) => {
+          const id = idsToFetch[idx];
+          const songs = res?.data?.[0]?.songs || [];
+          nextMap[id] = songs;
+        });
+
+        if (Object.keys(nextMap).length) {
+          setAlbumTrackMap((prev) => ({ ...prev, ...nextMap }));
+        }
+      } catch (err) {
+        console.error("Error loading album songs for MyMusic:", err);
+      }
+    };
+
+    loadAlbumSongs();
+    // INTENTIONALLY sirf likedAlbums pe depend, albumTrackMap pe nahi
+  }, [likedAlbums]);
 
   const scrollLeft = (ref) => {
     if (ref.current) ref.current.scrollBy({ left: -800, behavior: "smooth" });
@@ -262,7 +271,7 @@ const MyMusic = () => {
                 </div>
               </div>
 
-              {/* yaha gap-y-2 se songs ke beech halka gap */}
+              {/* songs ke beech halka gap */}
               <div className="flex flex-wrap gap-y-2">
                 {sortedLikedSongs.map(
                   (song, index) =>
@@ -283,49 +292,44 @@ const MyMusic = () => {
             </section>
           )}
 
-          
-                                     <div>
-            {likedAlbums.length > 0 && (
-              <>
-                <h1 className="text-2xl font-semibold lg:ml-4 p-4">
-                  Liked Albums
-                </h1>
+          {/* LIKED ALBUMS – old AlbumItems style + API se songs */}
+          {likedAlbums.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h1 className="text-2xl font-semibold lg:ml-4 p-4">
+                Liked Albums
+              </h1>
 
-                <div className="flex mx-1 lg:mx-8 items-center gap-3">
-                  <MdOutlineKeyboardArrowLeft
-                    className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                    onClick={() => scrollLeft(albumsScrollRef)}
-                  />
+              <div className="flex mx-1 lg:mx-8 items-center gap-3">
+                <MdOutlineKeyboardArrowLeft
+                  className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+                  onClick={() => scrollLeft(albumsScrollRef)}
+                />
 
-                  <div
-                    className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-2 overflow-x-auto scroll-hide w-max px-3 lg:px-0 scroll-smooth"
-                    ref={albumsScrollRef}
-                  >
-                    {likedAlbums.map((album) => {
-                      const songsFromApi = albumTrackMap[album.id] || [];
-                      const mergedAlbum = {
-                        ...album,
-                        songs: songsFromApi.length ? songsFromApi : album.songs,
-                      };
+                <div
+                  className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-2 overflow-x-auto scroll-hide w-max px-3 lg:px-0 scroll-smooth"
+                  ref={albumsScrollRef}
+                >
+                  {likedAlbums.map((album) => {
+                    const songsFromApi =
+                      albumTrackMap[album.id] || album.songs || [];
 
-                      return (
-                        <AlbumItems
-                          key={album.id}
-                          {...mergedAlbum}
-                        />
-                      );
-                    })}
-                  </div>
+                    const mergedAlbum = {
+                      ...album,
+                      songs: songsFromApi,
+                    };
 
-                  <MdOutlineKeyboardArrowRight
-                    className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                    onClick={() => scrollRight(albumsScrollRef)}
-                  />
+                    return <AlbumItems key={album.id} {...mergedAlbum} />;
+                  })}
                 </div>
-              </>
-            )}
-          </div> 
-          
+
+                <MdOutlineKeyboardArrowRight
+                  className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+                  onClick={() => scrollRight(albumsScrollRef)}
+                />
+              </div>
+            </section>
+          )}
+
           {/* LIKED PLAYLISTS */}
           {likedPlaylists.length > 0 && (
             <section className="flex flex-col gap-2">

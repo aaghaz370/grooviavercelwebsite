@@ -4,8 +4,7 @@ import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
 import SongsList from "../components/SongsList";
-// TOP imports me ye pakka rakho:
-import AlbumItems from "../components/Items/AlbumItems";
+import { fetchAlbumByID } from "../../fetch"; // path apne project ke hisaab se
 
 import { FaHeart } from "react-icons/fa6";
 import {
@@ -20,6 +19,7 @@ const MyMusic = () => {
   const [likedSongs, setLikedSongs] = useState([]);
   const [likedAlbums, setLikedAlbums] = useState([]);
   const [likedPlaylists, setLikedPlaylists] = useState([]);
+  const [albumTrackMap, setAlbumTrackMap] = useState({}); // { [albumId]: songs[] }
 
   const [sortMode, setSortMode] = useState("recent"); // recent | az | za
 
@@ -32,6 +32,34 @@ const MyMusic = () => {
   const [selectedSongIds, setSelectedSongIds] = useState([]);
 
   const albumsScrollRef = useRef(null);
+
+
+  // har liked album ke liye tracks fetch karo (sirf ek baar)
+  useEffect(() => {
+    const loadAlbumSongs = async () => {
+      try {
+        const missing = likedAlbums.filter(
+          (alb) => alb.id && !albumTrackMap[alb.id]
+        );
+
+        for (const alb of missing) {
+          const res = await fetchAlbumByID(alb.id);
+          const songs = res?.data?.[0]?.songs || [];
+
+          setAlbumTrackMap((prev) => ({
+            ...prev,
+            [alb.id]: songs,
+          }));
+        }
+      } catch (err) {
+        console.error("Error loading album songs for MyMusic:", err);
+      }
+    };
+
+    if (likedAlbums.length) {
+      loadAlbumSongs();
+    }
+  }, [likedAlbums, albumTrackMap]);
 
   // load liked + playlists from localStorage
   useEffect(() => {
@@ -256,114 +284,47 @@ const MyMusic = () => {
           )}
 
           
-          {/* LIKED ALBUMS – fixed size + only top 3 tracks */}
-{likedAlbums.length > 0 && (
-  <section className="flex flex-col gap-2">
-    <h1 className="text-lg lg:text-xl font-semibold mb-1">
-      Liked Albums
-    </h1>
+                                     <div>
+            {likedAlbums.length > 0 && (
+              <>
+                <h1 className="text-2xl font-semibold lg:ml-4 p-4">
+                  Liked Albums
+                </h1>
 
-    <div className="flex mx-1 lg:mx-8 items-center gap-3">
-      <MdOutlineKeyboardArrowLeft
-        className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[10rem] hidden lg:block"
-        onClick={() => scrollLeft(albumsScrollRef)}
-      />
-
-      <div
-        className="flex overflow-x-auto scroll-hide px-1 lg:px-0 scroll-smooth gap-4"
-        ref={albumsScrollRef}
-      >
-        {likedAlbums.map((album) => {
-          const cover = album.image || album.thumbnail || "/Unknown.png";
-
-          const albumTitle =
-            album.name ||
-            album.title ||
-            album.album ||
-            "Unknown Album";
-
-          const albumArtist =
-            album.primaryArtists ||
-            album.artist ||
-            album.subtitle ||
-            "";
-
-          const songsCount =
-            album.songCount ||
-            (Array.isArray(album.songs) ? album.songs.length : 0);
-
-          const tracks = Array.isArray(album.songs)
-            ? album.songs.slice(0, 3)
-            : [];
-
-          return (
-            <Link
-              to={`/albums/${album.id}`}
-              key={album.id}
-              className="flex-none w-[15.5rem]"
-            >
-              <div className="h-[15rem] rounded-[1.5rem] bg-gradient-to-br from-white/10 to-white/5 shadow-lg overflow-hidden p-3 flex flex-col justify-between">
-
-                {/* TOP: cover + album info */}
-                <div className="flex items-center gap-3">
-                  <img
-                    src={cover}
-                    className="h-14 w-14 rounded-lg object-cover shadow-md"
+                <div className="flex mx-1 lg:mx-8 items-center gap-3">
+                  <MdOutlineKeyboardArrowLeft
+                    className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+                    onClick={() => scrollLeft(albumsScrollRef)}
                   />
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="text-sm font-semibold truncate">
-                      {albumTitle}
-                    </span>
-                    {albumArtist && (
-                      <span className="text-xs opacity-70 truncate">
-                        {albumArtist}
-                      </span>
-                    )}
-                    <span className="text-[0.7rem] opacity-60">
-                      {songsCount} song{songsCount > 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
 
-                {/* BOTTOM: top 3 tracks */}
-                <div className="bg-black/15 rounded-2xl px-3 py-2 h-[6rem] overflow-hidden flex flex-col justify-center">
-                  <div className="space-y-1">
-                    {tracks.map((track) => {
-                      const tname = track.name || track.title;
-                      const tartist =
-                        (track.artists?.primary || [])
-                          .map((a) => a.name)
-                          .join(", ") || track.subtitle;
+                  <div
+                    className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-2 overflow-x-auto scroll-hide w-max px-3 lg:px-0 scroll-smooth"
+                    ref={albumsScrollRef}
+                  >
+                    {likedAlbums.map((album) => {
+                      const songsFromApi = albumTrackMap[album.id] || [];
+                      const mergedAlbum = {
+                        ...album,
+                        songs: songsFromApi.length ? songsFromApi : album.songs,
+                      };
 
                       return (
-                        <div key={track.id} className="text-xs truncate">
-                          <span className="font-medium truncate block">
-                            {tname}
-                          </span>
-                          {tartist && (
-                            <span className="opacity-70 truncate block">
-                              {tartist}
-                            </span>
-                          )}
-                        </div>
+                        <AlbumItems
+                          key={album.id}
+                          {...mergedAlbum}
+                        />
                       );
                     })}
                   </div>
+
+                  <MdOutlineKeyboardArrowRight
+                    className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+                    onClick={() => scrollRight(albumsScrollRef)}
+                  />
                 </div>
-
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      <MdOutlineKeyboardArrowRight
-        className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[10rem] hidden lg:block"
-        onClick={() => scrollRight(albumsScrollRef)}
-      />
-    </div>
-  </section>
-)}
+              </>
+            )}
+          </div> 
           
           {/* LIKED PLAYLISTS */}
           {likedPlaylists.length > 0 && (

@@ -21,41 +21,41 @@ export const communityPlaylists = [
     from: "#1f2937",
     to: "#111827",
   },
-
-
-  
-  {
-    id: 110858205,
-    title: "Vibe songs",
-    owner: "Honey Chauhan",
-    songCountLabel: "28 songs",
+    {
+    id: 158049570,
+    title: "Chill Beats",
+    owner: "Groovia Community",
+    songCountLabel: "30 songs",
     from: "#2A0F0F",
     to: "#0F0303",
-  },
+  },  
   {
-    id: 6689255,
-    title: "Gym & Pump",
+    id: 218822376,
+    title: "Nave Tunes",
     owner: "Groovia Community",
-    songCountLabel: "26 songs",
+    songCountLabel: "39 songs",
     from: "#0D1B2A",
     to: "#020617",
   },
   {
-    id: 99887766,
-    title: "Golden Oldies",
-    owner: "Retro Lovers",
-    songCountLabel: "32 songs",
+    id: 1134543511,
+    title: "Gen-z",
+    owner: "Groovia Community",
+    songCountLabel: "50 songs",
     from: "#3A2C09",
     to: "#0E0B03",
   },
   {
-    id: 12345678,
-    title: "Mood Booster",
-    owner: "Groovia",
-    songCountLabel: "24 songs",
+    id: 945435329,
+    title: "Bhojpuri Mix",
+    owner: "Groovia Community",
+    songCountLabel: "30 songs",
     from: "#2A103D",
     to: "#0B0314",
   },
+
+
+  
   {
     id: 69696969,
     title: "Bollywood Drive",

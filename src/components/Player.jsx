@@ -39,10 +39,7 @@ const Player = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isMaximized, setisMaximized] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-
-  // detail null se start
   const [detail, setDetails] = useState(null);
-
   const [list, setList] = useState({});
   const [suggetions, setSuggetion] = useState([]);
   const [likedSongs, setLikedSongs] = useState(() => {
@@ -51,55 +48,107 @@ const Player = () => {
 
   const inputRef = useRef();
 
-  // swipe gesture ke liye
-  const touchStartX = useRef(null);
-  const touchEndX = useRef(null);
+  // --- fullscreen state (shared with footer via document.fullscreenElement) ---
+  const [isFullscreen, setIsFullscreen] = useState(() => {
+    if (typeof document === "undefined") return false;
+    return !!document.fullscreenElement;
+  });
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
+  useEffect(() => {
+    const handleFsChange = () => {
+      const active = !!document.fullscreenElement;
+      setIsFullscreen(active);
+      // body class se footer ko hide/show kar sakte ho
+      document.body.classList.toggle("fullscreen-active", active);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error("Fullscreen error", err);
+    }
   };
 
-  const handleTouchEnd = (e) => {
-    if (touchStartX.current == null) return;
-    touchEndX.current = e.changedTouches[0].clientX;
+  // --- swipe gesture (sirf max player par) ---
+  const swipeStartX = useRef(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const swipeAreaRef = useRef(null);
 
-    const diff = touchEndX.current - touchStartX.current;
+  const handleSwipeStart = (e) => {
+    if (!currentSong) return;
+    swipeStartX.current = e.touches[0].clientX;
+    setIsSwiping(true);
+    setSwipeOffset(0);
+  };
 
-    // threshold ~ 50px
-    if (Math.abs(diff) > 50) {
-      if (diff < 0) {
-        // left swipe -> next
-        nextSong();
-      } else {
-        // right swipe -> prev
-        prevSong();
-      }
+  const handleSwipeMove = (e) => {
+    if (swipeStartX.current == null) return;
+    const delta = e.touches[0].clientX - swipeStartX.current;
+    setSwipeOffset(delta);
+  };
+
+  const handleSwipeEnd = () => {
+    if (swipeStartX.current == null) {
+      setIsSwiping(false);
+      setSwipeOffset(0);
+      return;
     }
 
-    touchStartX.current = null;
-    touchEndX.current = null;
+    const delta = swipeOffset;
+    const width =
+      swipeAreaRef.current?.offsetWidth || window.innerWidth || 300;
+    const threshold = width * 0.3; // ~30% screen
+
+    if (Math.abs(delta) > threshold) {
+      // pehle snap off-screen thoda animate feel ke liye
+      setSwipeOffset(delta < 0 ? -width : width);
+
+      // thoda delay then change song + reset
+      setTimeout(() => {
+        if (delta < 0) {
+          nextSong();
+        } else {
+          prevSong();
+        }
+        setSwipeOffset(0);
+        setIsSwiping(false);
+      }, 120);
+    } else {
+      // threshold se kam, bas wapas aa jao
+      setSwipeOffset(0);
+      setIsSwiping(false);
+    }
+
+    swipeStartX.current = null;
   };
 
+  // --- audio progress update ---
   useEffect(() => {
     if (!currentSong) return;
 
-    const audio = currentSong?.audio;
+    const audio = currentSong.audio;
     setCurrentTime(audio.currentTime);
 
     const updateProgress = () => {
       setCurrentTime(audio.currentTime);
       const progress =
-        (audio.currentTime / Number(currentSong?.duration)) * 100;
+        (audio.currentTime / Number(currentSong.duration)) * 100;
       if (inputRef.current) {
         inputRef.current.style.setProperty("--progress", `${progress}%`);
       }
     };
 
     audio.addEventListener("timeupdate", updateProgress);
-
-    return () => {
-      audio.removeEventListener("timeupdate", updateProgress);
-    };
+    return () => audio.removeEventListener("timeupdate", updateProgress);
   }, [currentSong, isPlaying]);
 
   const scrollRef = useRef(null);
@@ -108,7 +157,6 @@ const Player = () => {
       scrollRef.current.scrollLeft -= 1000;
     }
   };
-
   const scrollRight = (scrollRef) => {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft += 1000;
@@ -134,7 +182,7 @@ const Player = () => {
     }
   }, [currentSong]);
 
-  // suggestions + volume + timeupdate + ended
+  // suggestions + timeupdate + ended
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!currentSong?.id) return;
@@ -148,7 +196,6 @@ const Player = () => {
 
     if (currentSong) {
       const audioElement = currentSong.audio;
-
       audioElement.volume = volume / 100;
 
       const handleTimeUpdate = () => {
@@ -297,7 +344,7 @@ const Player = () => {
         }`}
       >
         <div className="flex flex-col w-full ">
-          {/* MINI PLAYER */}
+          {/* MINI PLAYER – no swipe here now */}
           {!isMaximized && currentSong && (
             <>
               <form className="flex items-center w-full lg:mb-2 mb-1 gap-3 h-[10px] ">
@@ -330,12 +377,7 @@ const Player = () => {
                 </span>
               </form>
               <div className=" h-[3rem] w-full">
-                <div
-                  className="flex justify-between items-center"
-                  // mini bar par bhi swipe enable
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={handleTouchEnd}
-                >
+                <div className="flex justify-between items-center">
                   <div
                     className="flex w-full  lg:w-auto"
                     onClick={handleMaximized}
@@ -487,11 +529,16 @@ const Player = () => {
                   />
                 </div>
                 <div className=" ">
-                  {/* ye pura top section swipeable */}
+                  {/* swipeable zone */}
                   <div
-                    className="flex lg:flex-row flex-col"
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
+                    ref={swipeAreaRef}
+                    className="flex lg:flex-row flex-col transform-gpu transition-transform duration-200"
+                    style={{
+                      transform: `translateX(${swipeOffset}px)`,
+                    }}
+                    onTouchStart={handleSwipeStart}
+                    onTouchMove={handleSwipeMove}
+                    onTouchEnd={handleSwipeEnd}
                   >
                     <div className=" flex  justify-center items-center lg:pl-[2.5rem]">
                       <img
@@ -725,8 +772,8 @@ const Player = () => {
                       )}
                     </div>
 
-                    {/* MAX PLAYER ke andar small footer – original footer ka feel */}
-                    <div className="flex flex-col items-center justify-center mt-6 mb-4 opacity-80">
+                    {/* MAX PLAYER BOTTOM – logo + fullscreen button */}
+                    <div className="flex flex-col items-center justify-center mt-6 mb-4 gap-2">
                       <div className="flex items-center gap-1">
                         <span className="bg"></span>
                         <span className="Musi font-extrabold text-xl">
@@ -734,9 +781,13 @@ const Player = () => {
                         </span>
                         <span className="fy font-extrabold text-xl">via</span>
                       </div>
-                      <p className="text-xs mt-2">
-                        Made with ❤️ by Rolex Sir.
-                      </p>
+                      <p className="text-xs">Made with ❤️ by Rolex Sir.</p>
+                      <button
+                        onClick={toggleFullscreen}
+                        className="mt-1 px-4 py-1.5 text-xs rounded-full border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm flex items-center gap-2"
+                      >
+                        {isFullscreen ? "Exit full screen" : "Go full screen"}
+                      </button>
                     </div>
                   </div>
                 </div>

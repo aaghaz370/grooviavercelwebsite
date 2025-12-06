@@ -39,6 +39,7 @@ const Player = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isMaximized, setisMaximized] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+
   const [detail, setDetails] = useState(null);
   const [list, setList] = useState({});
   const [suggetions, setSuggetion] = useState([]);
@@ -48,52 +49,47 @@ const Player = () => {
 
   const inputRef = useRef();
 
-  // --- fullscreen state (shared with footer via document.fullscreenElement) ---
-  const [isFullscreen, setIsFullscreen] = useState(() => {
-    if (typeof document === "undefined") return false;
-    return !!document.fullscreenElement;
-  });
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      const active = !!document.fullscreenElement;
-      setIsFullscreen(active);
-      // body class se footer ko hide/show kar sakte ho
-      document.body.classList.toggle("fullscreen-active", active);
-    };
-    document.addEventListener("fullscreenchange", handleFsChange);
-    return () => document.removeEventListener("fullscreenchange", handleFsChange);
-  }, []);
-
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (err) {
-      console.error("Fullscreen error", err);
+  // You Might Like slider
+  const scrollRef = useRef(null);
+  const scrollLeft = (scrollRef) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft -= 1000;
+    }
+  };
+  const scrollRight = (scrollRef) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft += 1000;
     }
   };
 
-  // --- swipe gesture (sirf max player par) ---
+  // ----- SWIPE FOR NEXT/PREV -----
   const swipeStartX = useRef(null);
+  const swipeStartY = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const swipeAreaRef = useRef(null);
 
   const handleSwipeStart = (e) => {
     if (!currentSong) return;
-    swipeStartX.current = e.touches[0].clientX;
+    const touch = e.touches[0];
+    swipeStartX.current = touch.clientX;
+    swipeStartY.current = touch.clientY;
     setIsSwiping(true);
     setSwipeOffset(0);
   };
 
   const handleSwipeMove = (e) => {
-    if (swipeStartX.current == null) return;
-    const delta = e.touches[0].clientX - swipeStartX.current;
-    setSwipeOffset(delta);
+    if (swipeStartX.current == null || swipeStartY.current == null) return;
+
+    const touch = e.touches[0];
+    const dx = touch.clientX - swipeStartX.current;
+    const dy = touch.clientY - swipeStartY.current;
+
+    // vertical move > horizontal -> normal scroll
+    if (Math.abs(dy) > Math.abs(dx)) return;
+
+    e.preventDefault(); // horizontal swipe
+    setSwipeOffset(dx);
   };
 
   const handleSwipeEnd = () => {
@@ -106,62 +102,53 @@ const Player = () => {
     const delta = swipeOffset;
     const width =
       swipeAreaRef.current?.offsetWidth || window.innerWidth || 300;
-    const threshold = width * 0.3; // ~30% screen
+    const threshold = width * 0.3; // 30% screen
 
     if (Math.abs(delta) > threshold) {
-      // pehle snap off-screen thoda animate feel ke liye
+      // animation: slide out
       setSwipeOffset(delta < 0 ? -width : width);
 
-      // thoda delay then change song + reset
       setTimeout(() => {
         if (delta < 0) {
-          nextSong();
+          nextSong(); // right drag -> next
         } else {
-          prevSong();
+          prevSong(); // left drag -> prev
         }
         setSwipeOffset(0);
         setIsSwiping(false);
       }, 120);
     } else {
-      // threshold se kam, bas wapas aa jao
+      // snap back
       setSwipeOffset(0);
       setIsSwiping(false);
     }
 
     swipeStartX.current = null;
+    swipeStartY.current = null;
   };
+  // ----- END SWIPE -----
 
-  // --- audio progress update ---
   useEffect(() => {
     if (!currentSong) return;
 
-    const audio = currentSong.audio;
+    const audio = currentSong?.audio;
     setCurrentTime(audio.currentTime);
 
     const updateProgress = () => {
       setCurrentTime(audio.currentTime);
       const progress =
-        (audio.currentTime / Number(currentSong.duration)) * 100;
+        (audio.currentTime / Number(currentSong?.duration)) * 100;
       if (inputRef.current) {
         inputRef.current.style.setProperty("--progress", `${progress}%`);
       }
     };
 
     audio.addEventListener("timeupdate", updateProgress);
-    return () => audio.removeEventListener("timeupdate", updateProgress);
-  }, [currentSong, isPlaying]);
 
-  const scrollRef = useRef(null);
-  const scrollLeft = (scrollRef) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft -= 1000;
-    }
-  };
-  const scrollRight = (scrollRef) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft += 1000;
-    }
-  };
+    return () => {
+      audio.removeEventListener("timeupdate", updateProgress);
+    };
+  }, [currentSong, isPlaying]);
 
   useEffect(() => {
     setIsVisible(!!(currentSong || isPlaying));
@@ -182,7 +169,7 @@ const Player = () => {
     }
   }, [currentSong]);
 
-  // suggestions + timeupdate + ended
+  // suggestions + volume + finished
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!currentSong?.id) return;
@@ -223,7 +210,6 @@ const Player = () => {
   }, [currentSong, volume, nextSong]);
 
   const handleProgressChange = (event) => {
-    if (!currentSong) return;
     const newPercentage = parseFloat(event.target.value);
     const newTime = (newPercentage / 100) * Number(currentSong.duration);
     currentSong.audio.currentTime = newTime;
@@ -344,7 +330,7 @@ const Player = () => {
         }`}
       >
         <div className="flex flex-col w-full ">
-          {/* MINI PLAYER – no swipe here now */}
+          {/* MINIMIZED VIEW */}
           {!isMaximized && currentSong && (
             <>
               <form className="flex items-center w-full lg:mb-2 mb-1 gap-3 h-[10px] ">
@@ -377,7 +363,7 @@ const Player = () => {
                 </span>
               </form>
               <div className=" h-[3rem] w-full">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center  ">
                   <div
                     className="flex w-full  lg:w-auto"
                     onClick={handleMaximized}
@@ -518,10 +504,16 @@ const Player = () => {
             </>
           )}
 
-          {/* MAX PLAYER */}
+          {/* MAXIMIZED VIEW */}
           {isMaximized && currentSong && (
             <>
-              <div className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth">
+              <div
+                className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth"
+                ref={swipeAreaRef}
+                onTouchStart={handleSwipeStart}
+                onTouchMove={handleSwipeMove}
+                onTouchEnd={handleSwipeEnd}
+              >
                 <div className=" flex w-[97%] justify-end ">
                   <IoIosClose
                     className="  icon text-[3rem] cursor-pointer"
@@ -529,16 +521,9 @@ const Player = () => {
                   />
                 </div>
                 <div className=" ">
-                  {/* swipeable zone */}
                   <div
-                    ref={swipeAreaRef}
                     className="flex lg:flex-row flex-col transform-gpu transition-transform duration-200"
-                    style={{
-                      transform: `translateX(${swipeOffset}px)`,
-                    }}
-                    onTouchStart={handleSwipeStart}
-                    onTouchMove={handleSwipeMove}
-                    onTouchEnd={handleSwipeEnd}
+                    style={{ transform: `translateX(${swipeOffset}px)` }}
                   >
                     <div className=" flex  justify-center items-center lg:pl-[2.5rem]">
                       <img
@@ -697,8 +682,6 @@ const Player = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* content below */}
                   <div className="flex flex-col overflow-hidden  p-1">
                     <div>
                       {Array.isArray(suggetions) && suggetions.length > 0 && (
@@ -770,24 +753,6 @@ const Player = () => {
                           </Link>
                         </div>
                       )}
-                    </div>
-
-                    {/* MAX PLAYER BOTTOM – logo + fullscreen button */}
-                    <div className="flex flex-col items-center justify-center mt-6 mb-4 gap-2">
-                      <div className="flex items-center gap-1">
-                        <span className="bg"></span>
-                        <span className="Musi font-extrabold text-xl">
-                          Groo
-                        </span>
-                        <span className="fy font-extrabold text-xl">via</span>
-                      </div>
-                      <p className="text-xs">Made with ❤️ by Rolex Sir.</p>
-                      <button
-                        onClick={toggleFullscreen}
-                        className="mt-1 px-4 py-1.5 text-xs rounded-full border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm flex items-center gap-2"
-                      >
-                        {isFullscreen ? "Exit full screen" : "Go full screen"}
-                      </button>
                     </div>
                   </div>
                 </div>

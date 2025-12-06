@@ -36,10 +36,13 @@ const Player = () => {
   const [volume, setVolume] = useState(() => {
     return Number(localStorage.getItem("volume")) || 100;
   });
-  const [isVisible, setIsVisible] = useState(false); // For showing and hiding the player
-  const [isMaximized, setisMaximized] = useState(false); // For minimizing the player
+  const [isVisible, setIsVisible] = useState(false);
+  const [isMaximized, setisMaximized] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [detail, setDetails] = useState({});
+
+  // ⬇️ detail ko null se start kiya
+  const [detail, setDetails] = useState(null);
+
   const [list, setList] = useState({});
   const [suggetions, setSuggetion] = useState([]);
   const [likedSongs, setLikedSongs] = useState(() => {
@@ -58,7 +61,9 @@ const Player = () => {
       setCurrentTime(audio.currentTime);
       const progress =
         (audio.currentTime / Number(currentSong?.duration)) * 100;
-      inputRef.current.style.setProperty("--progress", `${progress}%`);
+      if (inputRef.current) {
+        inputRef.current.style.setProperty("--progress", `${progress}%`);
+      }
     };
 
     audio.addEventListener("timeupdate", updateProgress);
@@ -71,13 +76,13 @@ const Player = () => {
   const scrollRef = useRef(null);
   const scrollLeft = (scrollRef) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft -= 1000; // Scroll left by 800px
+      scrollRef.current.scrollLeft -= 1000;
     }
   };
 
   const scrollRight = (scrollRef) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollLeft += 1000; // Scroll right by 800px
+      scrollRef.current.scrollLeft += 1000;
     }
   };
 
@@ -89,25 +94,26 @@ const Player = () => {
     ? currentSong.artists.primary.map((artist) => artist.name).join(", ")
     : "Unknown Artist";
 
+  // song -> album detail
   useEffect(() => {
     const albumDetail = async () => {
       const result = await getSongById(currentSong.id);
-      setDetails(result.data[0]);
-      // console.log(detail);
+      // result.data[0] ho bhi sakta hai, nahi bhi
+      setDetails(result?.data?.[0] || null);
     };
     if (currentSong?.id) {
       albumDetail();
     }
   }, [currentSong]);
 
+  // suggestions + volume + timeupdate + ended
   useEffect(() => {
     const fetchSuggestions = async () => {
-        if (!currentSong?.id) return;
-        const suggestions = await getSuggestionSong(currentSong.id);
-
-        setList(suggestions.data);
-        setSuggetion(suggestions.data);
-     
+      if (!currentSong?.id) return;
+      const suggestions = await getSuggestionSong(currentSong.id);
+      const data = suggestions?.data || [];
+      setList(data);
+      setSuggetion(data);
     };
 
     fetchSuggestions();
@@ -118,7 +124,7 @@ const Player = () => {
       audioElement.volume = volume / 100;
 
       const handleTimeUpdate = () => {
-        setCurrentTime(audioElement.currentTime); // Update currentTime state
+        setCurrentTime(audioElement.currentTime);
         const duration = Number(currentSong.duration);
         const newTiming = (audioElement.currentTime / duration) * 100;
         if (inputRef.current) {
@@ -127,8 +133,8 @@ const Player = () => {
       };
 
       const handleEndSong = () => {
-        if (!currentSong || !currentSong.id) return; // Prevents running if currentSong is missing
-        nextSong(); // Call nextSong when the current song ends
+        if (!currentSong || !currentSong.id) return;
+        nextSong();
       };
 
       audioElement.addEventListener("timeupdate", handleTimeUpdate);
@@ -146,21 +152,19 @@ const Player = () => {
     const newTime = (newPercentage / 100) * Number(currentSong.duration);
     currentSong.audio.currentTime = newTime;
     setCurrentTime(newTime);
-
-    // Update currentTime to match slider
   };
 
   const handleVolumeChange = (event) => {
     const newVolume = parseFloat(event.target.value) / 100;
     setVolume(newVolume * 100);
-    localStorage.setItem("volume", newVolume * 100); // Save volume to localStorage
+    localStorage.setItem("volume", newVolume * 100);
     if (currentSong?.audio) {
       currentSong.audio.volume = newVolume;
     }
   };
 
   const handleMaximized = () => {
-    setisMaximized(!isMaximized); // Toggle minimize state
+    setisMaximized(!isMaximized);
   };
 
   const formatTime = (time) => {
@@ -176,11 +180,10 @@ const Player = () => {
   const toggleLikeSong = () => {
     if (!currentSong) return;
 
-    // Extract only necessary properties
     const songData = {
       id: currentSong.id,
       name: currentSong.name,
-      audio: currentSong.audio.currentSrc, // Ensure this is a URL
+      audio: currentSong.audio.currentSrc,
       duration: currentSong.duration,
       image: currentSong.image,
       artists: currentSong.artists,
@@ -189,14 +192,18 @@ const Player = () => {
     const updatedLikedSongs = likedSongs.some(
       (song) => song.id === currentSong.id
     )
-      ? likedSongs.filter((song) => song.id !== currentSong.id) // Remove song if already liked
-      : [...likedSongs, songData]; // Add cleaned song data
+      ? likedSongs.filter((song) => song.id !== currentSong.id)
+      : [...likedSongs, songData];
 
     setLikedSongs(updatedLikedSongs);
     localStorage.setItem("likedSongs", JSON.stringify(updatedLikedSongs));
   };
+
   const name = currentSong?.name || "Unknown Title";
+
   useEffect(() => {
+    if (!currentSong) return;
+
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: he.decode(name),
@@ -237,30 +244,32 @@ const Player = () => {
       navigator.mediaSession.setActionHandler("nexttrack", nextSong);
     }
   }, [currentSong, artistNames, playMusic, prevSong, nextSong, song, name]);
+
   const theme = document.documentElement.getAttribute("data-theme");
 
   if (currentSong) {
-    if (repeatMode === "one") {
-      currentSong.audio.loop = true;
-    } else {
-      currentSong.audio.loop = false;
-    }
+    currentSong.audio.loop = repeatMode === "one";
   }
+
+  // album id safely nikala
+  const albumId = detail?.album?.id;
+  const albumName = detail?.album?.name || "";
 
   return (
     <div
-      className={` ${isVisible ? "lg:flex " : "hidden"}
-      fixed bottom-14 lg:bottom-0 left-0 w-screen z-20 flex    justify-center items-center  `}
+      className={` ${
+        isVisible ? "lg:flex " : "hidden"
+      } fixed bottom-14 lg:bottom-0 left-0 w-screen z-20 flex justify-center items-center`}
     >
       <div
-        className={`flex flex-col  w-screen bg-auto rounded-tl-xl rounded-tr-xl  relative transition-all ease-in-out duration-500  ${
+        className={`flex flex-col w-screen bg-auto rounded-tl-xl rounded-tr-xl relative transition-all ease-in-out duration-500 ${
           isMaximized
-            ? "  pt-[26rem] backdrop-brightness-[0.4]"
+            ? "pt-[26rem] backdrop-brightness-[0.4]"
             : "lg:h-[5.4rem] px-4 py-2 Player"
         }`}
       >
         <div className="flex flex-col w-full ">
-          {!isMaximized && (
+          {!isMaximized && currentSong && (
             <>
               <form className="flex items-center w-full lg:mb-2 mb-1 gap-3 h-[10px] ">
                 <span className=" text-xs ">{formatTime(currentTime)} </span>
@@ -315,7 +324,6 @@ const Player = () => {
                         </span>
                       </div>
                     </div>
-
                   </div>
                   <div className="flex flex-col lg:items-center gap-5   p-2">
                     <div className="flex gap-5 justify-end lg:justify-center items-center">
@@ -433,7 +441,8 @@ const Player = () => {
               </div>
             </>
           )}
-          {isMaximized && (
+
+          {isMaximized && currentSong && (
             <>
               <div className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth">
                 <div className=" flex w-[97%] justify-end ">
@@ -457,7 +466,6 @@ const Player = () => {
                           {currentSong?.name
                             ? he.decode(currentSong.name)
                             : "Empty"}
-
                         </span>
                         <span className="overflow-hidden  flex  w-[98%] mb-1  text-base font-medium  justify-between h-[1.84rem]      ">
                           {he.decode(artistNames)}
@@ -586,61 +594,61 @@ const Player = () => {
                             />
                           </div>
 
-                          <IoShareSocial
-                            className="icon text-3xl hidden lg:block cursor-pointer  lg:hover:scale-105 mr-4 "
-                            onClick={() =>
-                              navigator.share({
-                                title: currentSong.name,
-                                text: `Listen to ${currentSong.name} on Musify`,
-                                url: `${window.location.origin}/albums/${detail.album.id}`,
-                              })
-                            }
-                          />
+                          {/* Share only jab album id mile */}
+                          {albumId && (
+                            <IoShareSocial
+                              className="icon text-3xl hidden lg:block cursor-pointer  lg:hover:scale-105 mr-4 "
+                              onClick={() =>
+                                navigator.share({
+                                  title: currentSong.name,
+                                  text: `Listen to ${currentSong.name} on Musify`,
+                                  url: `${window.location.origin}/albums/${albumId}`,
+                                })
+                              }
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="flex flex-col overflow-hidden  p-1">
                     <div>
-                       {suggetions.length >= 0 && (
-                          <div className="flex flex-col justify-center items-center w-full ">
-                            <h2 className="pr-1 m-4 text-xl lg:text-2xl font-semibold w-full ml-[2.5rem] lg:ml-[5.5rem] ">
-                              You Might Like
-                            </h2>
-                            <div className="flex justify-center items-center gap-3 w-full">
-                              {/* Left Arrow */}
-                               <MdOutlineKeyboardArrowLeft
-                                className="text-3xl hover:scale-125 cursor-pointer h-[9rem]   hidden lg:block arrow-btn"
-                                onClick={() => scrollLeft(scrollRef)}
-                              />
-                              <div
-                                className="grid grid-rows-1  grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
-                                ref={scrollRef}
-                              >
-                                {suggetions?.map((song, index) => (
-                                  <SongGrid
-                                    key={song.id || index}
-                                    {...song}
-                                     song={list}
-                                  /> 
-                                ))}
-                              </div>
-                              {/* Right Arrow */}
-                             <MdOutlineKeyboardArrowRight
-                                className="text-3xl hover:scale-125  cursor-pointer h-[9rem] hidden lg:block arrow-btn"
-                                onClick={() => scrollRight(scrollRef)}
-                              />
-                            </div> 
+                      {Array.isArray(suggetions) && suggetions.length > 0 && (
+                        <div className="flex flex-col justify-center items-center w-full ">
+                          <h2 className="pr-1 m-4 text-xl lg:text-2xl font-semibold w-full ml-[2.5rem] lg:ml-[5.5rem] ">
+                            You Might Like
+                          </h2>
+                          <div className="flex justify-center items-center gap-3 w-full">
+                            <MdOutlineKeyboardArrowLeft
+                              className="text-3xl hover:scale-125 cursor-pointer h-[9rem]   hidden lg:block arrow-btn"
+                              onClick={() => scrollLeft(scrollRef)}
+                            />
+                            <div
+                              className="grid grid-rows-1  grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
+                              ref={scrollRef}
+                            >
+                              {suggetions.map((songItem, index) => (
+                                <SongGrid
+                                  key={songItem.id || index}
+                                  {...songItem}
+                                  song={list}
+                                />
+                              ))}
+                            </div>
+                            <MdOutlineKeyboardArrowRight
+                              className="text-3xl hover:scale-125  cursor-pointer h-[9rem] hidden lg:block arrow-btn"
+                              onClick={() => scrollRight(scrollRef)}
+                            />
                           </div>
-                        )}
-                       
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col pt-3 ">
                       <h2 className="pr-1 text-xl lg:text-2xl font-semibold  w-full ml-[2rem] lg:ml-[3.5rem] lg:m-3 ">
                         Artists
                       </h2>
                       <div className="grid grid-flow-col lg:w-max w-full scroll-smooth gap-[1rem] lg:gap-[1.5rem] lg:pl-[2rem] pl-[1rem] overflow-x-scroll scroll-hide ">
-                        {currentSong.artists.primary.map((artist, index) => (
+                        {currentSong?.artists?.primary?.map((artist, index) => (
                           <ArtistItems
                             key={`${artist.id || index}`}
                             {...artist}
@@ -650,30 +658,31 @@ const Player = () => {
                     </div>
 
                     <div className="flex flex-col lg:flex-row gap-[2rem] ">
-                      <div className="flex flex-col ">
-                        <h2 className="pr-1 text-xl lg:text-2xl font-semibold  w-full ml-[2rem] lg:ml-[3.5rem] ">
-                          From Album ...
-                        </h2>
-                        <Link
-                          to={`/albums/${detail.album.id}`}
-                          className="card  w-[12.5rem] h-fit overflow-clip  border-[0.1px]  p-1  rounded-lg lg:mx-[2rem] mt-[1rem] "
-                        >
-                          <div className="p-1">
-                            <img
-                              src={currentSong.image || "/Unknown.png"}
-                              alt={name}
-                              className="rounded-lg "
-                            />
-                          </div>
-                          <div className="w-full flex flex-col justify-center pl-2">
-                            <span className="font-semibold text-[1.1rem] overflow-x-clip ">
-                              {detail.album.name
-                                ? he.decode(detail.album.name)
-                                : ""}
-                            </span>
-                          </div>
-                        </Link>
-                      </div>
+                      {/* From Album ... sirf jab album id ho */}
+                      {albumId && (
+                        <div className="flex flex-col ">
+                          <h2 className="pr-1 text-xl lg:text-2xl font-semibold  w-full ml-[2rem] lg:ml-[3.5rem] ">
+                            From Album ...
+                          </h2>
+                          <Link
+                            to={`/albums/${albumId}`}
+                            className="card  w-[12.5rem] h-fit overflow-clip  border-[0.1px]  p-1  rounded-lg lg:mx-[2rem] mt-[1rem] "
+                          >
+                            <div className="p-1">
+                              <img
+                                src={currentSong.image || "/Unknown.png"}
+                                alt={name}
+                                className="rounded-lg "
+                              />
+                            </div>
+                            <div className="w-full flex flex-col justify-center pl-2">
+                              <span className="font-semibold text-[1.1rem] overflow-x-clip ">
+                                {albumName ? he.decode(albumName) : ""}
+                              </span>
+                            </div>
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

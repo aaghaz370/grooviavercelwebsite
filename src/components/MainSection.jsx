@@ -61,11 +61,13 @@ const MainSection = () => {
 
   const getGreeting = () => {
     const hours = new Date().getHours();
-    return hours < 12
-      ? "Good Morning"
-      : hours < 18
-      ? "Good Afternoon"
-      : "Good Evening";
+    const base =
+      hours < 12
+        ? "Good Morning"
+        : hours < 18
+        ? "Good Afternoon"
+        : "Good Evening";
+    return `${base} 👋`;
   };
 
   // ---------- MAIN HOME DATA (OPTIMIZED: PARALLEL FETCH) ----------
@@ -202,14 +204,14 @@ const MainSection = () => {
   // ---------- LOADING / ERROR UI ----------
   if (loading) {
     return (
-      <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center gap-4 px-4">
-        {/* Greeting: ab mobile + desktop dono par */}
-        <div className="text-xl lg:text-2xl w-full max-w-5xl font-semibold ml-[0.5rem] lg:ml-[1rem]">
+      <div className="pt-[1.5rem] lg:pt-4 mt-[4.3rem] flex flex-col items-center gap-4 px-4">
+        {/* Greeting – ab bilkul header ke paas */}
+        <div className="text-xl lg:text-2xl w-full max-w-5xl font-semibold px-[0.75rem] lg:px-[1rem] mb-1">
           {getGreeting()}
         </div>
 
         {/* Skeleton layout – Recently Played + New Songs style cards */}
-        <div className="w-full max-w-5xl mt-2 space-y-6 animate-pulse">
+        <div className="w-full max-w-5xl mt-1 space-y-6 animate-pulse">
           {/* Recently Played title */}
           <div className="h-5 w-40 rounded-full bg-white/10" />
 
@@ -242,7 +244,7 @@ const MainSection = () => {
 
   if (error) {
     return (
-      <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center px-4">
+      <div className="pt-[1.5rem] lg:pt-4 mt-[4.3rem] flex flex-col items-center px-4">
         <div className="text-sm opacity-80">
           Error loading home data: {error}
         </div>
@@ -252,9 +254,9 @@ const MainSection = () => {
 
   // ---------- NORMAL UI ----------
   return (
-    <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center overflow-x-clip gap-4">
-      {/* Greeting: yahan bhi mobile + desktop dono par */}
-      <div className="text-xl lg:text-2xl w-full font-semibold ml-[1rem] lg:ml-[5.5rem] m-1">
+    <div className="pt-[1.5rem] lg:pt-4 mt-[4.3rem] flex flex-col items-center overflow-x-clip gap-4">
+      {/* Greeting – mobile + desktop, kam gap, thoda lively */}
+      <div className="text-xl lg:text-2xl w-full font-semibold px-[1rem] lg:px-[5.5rem] mb-1">
         {getGreeting()}
       </div>
 

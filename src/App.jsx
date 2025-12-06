@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/App.jsx
+import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AlbumDetail from "./pages/AlbumDetails";
 import Home from "./pages/Home";
@@ -22,6 +23,10 @@ export default function App() {
   const [shuffle, setShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState("none");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
+  // 🔔 Sleep Timer state
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState(null); // 15 / 30 / 60 / null
+  const [sleepTimerDeadline, setSleepTimerDeadline] = useState(null); // timestamp ms
 
   const playMusic = async (
     downloadUrl,
@@ -180,6 +185,44 @@ export default function App() {
     setShuffle((prevState) => !prevState);
   };
 
+  // 💤 Sleep timer helper – Player se sirf minutes pass honge
+  const setSleepTimer = (minutes) => {
+    if (!minutes || minutes <= 0) {
+      setSleepTimerMinutes(null);
+      setSleepTimerDeadline(null);
+      return;
+    }
+    setSleepTimerMinutes(minutes);
+    setSleepTimerDeadline(Date.now() + minutes * 60 * 1000);
+  };
+
+  // Sleep timer effect – deadline change ya currentSong change pe
+  useEffect(() => {
+    if (!sleepTimerDeadline) return;
+
+    const remaining = sleepTimerDeadline - Date.now();
+    if (remaining <= 0) {
+      if (currentSong?.audio) {
+        currentSong.audio.pause();
+      }
+      setIsPlaying(false);
+      setSleepTimerMinutes(null);
+      setSleepTimerDeadline(null);
+      return;
+    }
+
+    const id = setTimeout(() => {
+      if (currentSong?.audio) {
+        currentSong.audio.pause();
+      }
+      setIsPlaying(false);
+      setSleepTimerMinutes(null);
+      setSleepTimerDeadline(null);
+    }, remaining);
+
+    return () => clearTimeout(id);
+  }, [sleepTimerDeadline, currentSong]);
+
   return (
     <>
       <SpeedInsights />
@@ -201,6 +244,9 @@ export default function App() {
           downloadSong,
           toggleRepeatMode,
           repeatMode,
+          // sleep timer exposed to whole app
+          sleepTimerMinutes,
+          setSleepTimer,
         }}
       >
         <Router>

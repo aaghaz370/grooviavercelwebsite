@@ -3,6 +3,7 @@ import {
   fetchplaylistsByID,
   searchAlbumByQuery,
   searchPlayListByQuery,
+  fetchNewReleases, 
 } from "../../fetch";
 import AlbumSlider from "./Sliders/AlbumSlider";
 import PlaylistSlider from "./Sliders/PlaylistSlider";
@@ -32,6 +33,7 @@ const MainSection = () => {
   const recentScrollRef = useRef(null);
   const latestSongsScrollRef = useRef(null);
   const trendingScrollRef = useRef(null);
+  const newReleaseScrollRef = useRef(null);   
 
   const getRecentlyPlayedSongs = () => {
     const playedSongs = JSON.parse(localStorage.getItem("playedSongs")) || [];
@@ -127,18 +129,15 @@ const MainSection = () => {
  useEffect(() => {
   const loadNewReleases = async () => {
     try {
-      const data = await fetchNewReleases();
-      const songs = data?.new_songs || data?.new_trending || [];
-
-      // 12 songs only
-      setNewReleases(songs.slice(0, 12));
+      const songs = await fetchNewReleases(); // ab yeh array hi return karega
+      setNewReleases(songs.slice(0, 12));     // 12 hi rakhte hain
     } catch (err) {
       console.error("New Releases Fetch Error:", err);
     }
   };
 
   loadNewReleases();
-}, []); 
+}, []);
 
   useEffect(() => {
     const combineArray = [
@@ -273,8 +272,7 @@ const MainSection = () => {
       {/* Mood Playlists – big cards (Daily discover style) */}
       <MoodSection />
 
-     {/* NEW RELEASES */}
-{newReleases.length > 0 && (
+     {newReleases.length > 0 && (
   <div className="flex flex-col w-full">
     <h2 className="m-4 mt-2 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
       New Releases

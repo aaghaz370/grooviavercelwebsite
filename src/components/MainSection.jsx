@@ -1,3 +1,4 @@
+// src/components/MainSection.jsx
 import { useEffect, useState, useRef } from "react";
 import {
   fetchplaylistsByID,
@@ -30,14 +31,12 @@ const MainSection = () => {
   const [playlists, setPlaylists] = useState([]);
   const [nowTrending, setNowTrending] = useState([]);
 
-
   // ❤️ Most Streamed Love Songs – Hindi
   const [loveSongs, setLoveSongs] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [list, setList] = useState([]);
-  
 
   // Scroll refs
   const recentScrollRef = useRef(null);
@@ -69,52 +68,66 @@ const MainSection = () => {
       : "Good Evening";
   };
 
-  // ---------- MAIN HOME DATA (pehle se tha) ----------
+  // ---------- MAIN HOME DATA (OPTIMIZED: PARALLEL FETCH) ----------
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAll = async () => {
       try {
-        // Today Trending
-        const song = await fetchplaylistsByID(110858205);
-        setTrending(song.data.songs.slice(0, 12));
+        setLoading(true);
+        setError(null);
 
-        // New Songs
-        const latestSongsRes = await fetchplaylistsByID(6689255);
-        setlatestSongs(latestSongsRes.data.songs.slice(0, 12));
+        // sab main calls PARALLEL me
+        const [
+          trendingPl,
+          latestPl,
+          albumRes,
+          playlistRes,
+        ] = await Promise.all([
+          fetchplaylistsByID(110858205), // Today Trending
+          fetchplaylistsByID(6689255),   // New Songs
+          searchAlbumByQuery("latest"),  // Top albums
+          searchPlayListByQuery("Top"),  // Top playlists
+        ]);
 
-        // Albums
-        const albumRes = await searchAlbumByQuery("latest");
-        setAlbums(albumRes.data.results);
+        const artist = await artistData; // mostly sync / cheap
 
-        // Artists (static file se)
-        const artist = await artistData;
-        setArtists(artist.results);
+        if (!isMounted) return;
 
-        // Top Playlists
-        const playlistRes = await searchPlayListByQuery("Top");
-        setPlaylists(playlistRes.data.results);
+        setTrending(trendingPl?.data?.songs?.slice(0, 12) || []);
+        setlatestSongs(latestPl?.data?.songs?.slice(0, 12) || []);
+        setAlbums(albumRes?.data?.results || []);
+        setArtists(artist?.results || []);
+        setPlaylists(playlistRes?.data?.results || []);
       } catch (err) {
+        if (!isMounted) return;
+        console.error("Home main fetch error:", err);
         setError(err.message || "Error while fetching data");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchAll();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // ---------- NEW: MOST STREAMED LOVE SONGS SECTION ----------
+  // ---------- MOST STREAMED LOVE SONGS – HINDI ----------
   useEffect(() => {
+    let isMounted = true;
+
     const fetchLoveSongs = async () => {
       try {
-        // 1) Search playlist by name
         const res = await searchPlayListByQuery(
           "Most Streamed Love Songs Hindi"
         );
 
         const results = res?.data?.results || [];
-        if (!results.length) return;
+        if (!results.length || !isMounted) return;
 
-        // 2) Try to find EXACT playlist using name/perma_url
         const match =
           results.find(
             (p) =>
@@ -125,11 +138,10 @@ const MainSection = () => {
                 .includes("most streamed love songs - hindi")
           ) || results[0];
 
-        // 3) Now fetch full playlist by its numeric ID
         const playlist = await fetchplaylistsByID(match.id);
-        const songs = playlist?.data?.songs || [];
+        if (!isMounted) return;
 
-        // 4) Sirf 28 songs rakhte hain (4–4 stack ke hisaab se)
+        const songs = playlist?.data?.songs || [];
         setLoveSongs(songs.slice(0, 28));
       } catch (e) {
         console.error("Love songs section error:", e);
@@ -137,39 +149,46 @@ const MainSection = () => {
     };
 
     fetchLoveSongs();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-
+  // ---------- TRENDING ON SOCIALS / NOW TRENDING ----------
   useEffect(() => {
-  const fetchNowTrending = async () => {
-    try {
-      // 1) Search playlist by name
-      const res = await searchPlayListByQuery("Now Trending");
-      const results = res?.data?.results || [];
-      if (!results.length) return;
+    let isMounted = true;
 
-      // 2) Find correct playlist
-      const match =
-        results.find(
-          (p) =>
-            p.perma_url?.includes("now-trending") ||
-            p.url?.includes("now-trending") ||
-            p.name?.toLowerCase().includes("now trending")
-        ) || results[0];
+    const fetchNowTrending = async () => {
+      try {
+        const res = await searchPlayListByQuery("Now Trending");
+        const results = res?.data?.results || [];
+        if (!results.length || !isMounted) return;
 
-      // 3) Full playlist fetch using numeric ID
-      const playlist = await fetchplaylistsByID(match.id);
-      const songs = playlist?.data?.songs || [];
+        const match =
+          results.find(
+            (p) =>
+              p.perma_url?.includes("now-trending") ||
+              p.url?.includes("now-trending") ||
+              p.name?.toLowerCase().includes("now trending")
+          ) || results[0];
 
-      // 4) Sirf 24 songs
-      setNowTrending(songs.slice(0, 24));
-    } catch (e) {
-      console.error("Now Trending section error:", e);
-    }
-  };
+        const playlist = await fetchplaylistsByID(match.id);
+        if (!isMounted) return;
 
-  fetchNowTrending();
-}, []);
+        const songs = playlist?.data?.songs || [];
+        setNowTrending(songs.slice(0, 24));
+      } catch (e) {
+        console.error("Now Trending section error:", e);
+      }
+    };
+
+    fetchNowTrending();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // ---------- COMBINED LIST PLAYER KE LIYE ----------
   useEffect(() => {
@@ -183,11 +202,38 @@ const MainSection = () => {
       (song, index, self) => index === self.findIndex((t) => t.id === song.id)
     );
     setList(uniqueSongs);
+    // deliberately recentlyPlayedSongs ko dependency me nahi dala
   }, [trending, latestSongs, loveSongs]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  // ---------- LOADING / ERROR UI ----------
+  if (loading) {
+    return (
+      <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center gap-4 px-4">
+        <div className="hidden lg:block text-2xl w-full max-w-5xl font-semibold mb-2">
+          {getGreeting()}
+        </div>
+        {/* chota skeleton, taaki blank black na lage */}
+        <div className="w-full max-w-5xl space-y-4 animate-pulse">
+          <div className="h-5 w-32 rounded-full bg-white/10" />
+          <div className="h-32 rounded-2xl bg-white/5" />
+          <div className="h-5 w-40 rounded-full bg-white/10" />
+          <div className="h-32 rounded-2xl bg-white/5" />
+        </div>
+      </div>
+    );
+  }
 
+  if (error) {
+    return (
+      <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center px-4">
+        <div className="text-sm opacity-80">
+          Error loading home data: {error}
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- NORMAL UI ----------
   return (
     <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center overflow-x-clip gap-4">
       <div className="hidden lg:block text-2xl w-full font-semibold lg:ml-[5.5rem] m-1">
@@ -298,8 +344,6 @@ const MainSection = () => {
         </div>
       </div>
 
-      
-
       {/* Mood Playlists – big cards */}
       <MoodSection />
 
@@ -337,10 +381,9 @@ const MainSection = () => {
         </div>
       )}
 
-      
       {/* From the Community – manual playlists */}
-<CommunitySection />
-      
+      <CommunitySection />
+
       {/* Golden Era Playlists */}
       <GoldenEraSection />
 
@@ -353,41 +396,41 @@ const MainSection = () => {
       </div>
 
       {/* ===================== TRENDING ON SOCIALS ===================== */}
-{nowTrending.length > 0 && (
-  <div className="flex flex-col w-full">
-    <h2 className="m-4 mt-2 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
-      Trending on Socials
-    </h2>
+      {nowTrending.length > 0 && (
+        <div className="flex flex-col w-full">
+          <h2 className="m-4 mt-2 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
+            Trending on Socials
+          </h2>
 
-    <div className="flex justify-center items-center gap-2 w-full">
-      <MdOutlineKeyboardArrowLeft
-        className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
-        onClick={() => scrollLeft(nowTrendingScrollRef)}
-      />
+          <div className="flex justify-center items-center gap-2 w-full">
+            <MdOutlineKeyboardArrowLeft
+              className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
+              onClick={() => scrollLeft(nowTrendingScrollRef)}
+            />
 
-      <div className="w-full overflow-hidden pl-2 lg:pl-0">
-        <div
-          className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth pr-2"
-          ref={nowTrendingScrollRef}
-          style={{
-            gridTemplateRows: "repeat(4, 1fr)",
-            gridAutoFlow: "column",
-            gridAutoColumns: "85%",
-          }}
-        >
-          {nowTrending.map((song) => (
-            <TrendingCard key={song.id} {...song} song={list} />
-          ))}
+            <div className="w-full overflow-hidden pl-2 lg:pl-0">
+              <div
+                className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth pr-2"
+                ref={nowTrendingScrollRef}
+                style={{
+                  gridTemplateRows: "repeat(4, 1fr)",
+                  gridAutoFlow: "column",
+                  gridAutoColumns: "85%",
+                }}
+              >
+                {nowTrending.map((song) => (
+                  <TrendingCard key={song.id} {...song} song={list} />
+                ))}
+              </div>
+            </div>
+
+            <MdOutlineKeyboardArrowRight
+              className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
+              onClick={() => scrollRight(nowTrendingScrollRef)}
+            />
+          </div>
         </div>
-      </div>
-
-      <MdOutlineKeyboardArrowRight
-        className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
-        onClick={() => scrollRight(nowTrendingScrollRef)}
-      />
-    </div>
-  </div>
-)}
+      )}
 
       {/* Top Artists */}
       <div className="w-full">
@@ -407,7 +450,5 @@ const MainSection = () => {
     </div>
   );
 };
-
-
 
 export default MainSection;

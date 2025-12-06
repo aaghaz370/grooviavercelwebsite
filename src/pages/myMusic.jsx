@@ -1,12 +1,12 @@
 // src/pages/MyMusic.jsx
-import { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
 import SongsList from "../components/SongsList";
 import PlaylistItems from "../components/Items/PlaylistItems";
-import { fetchAlbumByID } from "../../fetch"; // abhi rehne de, future me use kar sakta hai
+import { fetchAlbumByID } from "../../fetch";
 import MusicContext from "../context/MusicContext";
 
 import { FaHeart } from "react-icons/fa6";
@@ -15,7 +15,7 @@ const MyMusic = () => {
   const [likedSongs, setLikedSongs] = useState([]);
   const [likedAlbums, setLikedAlbums] = useState([]);
   const [likedPlaylists, setLikedPlaylists] = useState([]);
-  const [albumTrackMap, setAlbumTrackMap] = useState({}); // { [albumId]: songs[] }
+  const [albumTrackMap, setAlbumTrackMap] = useState({}); // future use
 
   const [sortMode, setSortMode] = useState("recent"); // recent | az | za
 
@@ -27,7 +27,12 @@ const MyMusic = () => {
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [selectedSongIds, setSelectedSongIds] = useState([]);
 
-  const albumsScrollRef = useRef(null);
+  // search + pagination (liked songs)
+  const [songSearchTerm, setSongSearchTerm] = useState("");
+  const [visibleSongCount, setVisibleSongCount] = useState(15);
+
+  // modal search
+  const [modalSearchTerm, setModalSearchTerm] = useState("");
 
   // >>> Music context (Play all / Shuffle ke liye) <<<
   const { playMusic, setSongs } = useContext(MusicContext);
@@ -114,28 +119,44 @@ const MyMusic = () => {
 
   const sortedLikedSongs = getSortedSongs();
 
-  // >>> PLAY ALL / SHUFFLE FIX <<<
+  const normalize = (str) => (str || "").toLowerCase();
+
+  // search filter (liked songs)
+  const filteredMainSongs = sortedLikedSongs.filter((song) => {
+    const term = songSearchTerm.trim().toLowerCase();
+    if (!term) return true;
+    const name = normalize(song.name);
+    const artistNames = (song.artists?.primary || [])
+      .map((a) => a.name)
+      .join(" ")
+      .toLowerCase();
+    return name.includes(term) || artistNames.includes(term);
+  });
+
+  // pagination: search on -> show all; search empty -> 15/15 load more
+  const displaySongs = songSearchTerm.trim()
+    ? filteredMainSongs
+    : filteredMainSongs.slice(0, visibleSongCount);
+
+  // >>> PLAY ALL / SHUFFLE <<<
   const getAudioSource = (song) => {
     if (!song) return null;
     if (song.downloadUrl) {
-      // jioSaavn object jaisa
       if (Array.isArray(song.downloadUrl)) {
         return song.downloadUrl[4]?.url || song.downloadUrl[0]?.url;
       }
       return song.downloadUrl;
     }
-    return song.audio; // hum log ne kahin-kahin audio store kiya hoga
+    return song.audio;
   };
 
   const handlePlayAll = () => {
-    if (!sortedLikedSongs.length) return;
-    const first = sortedLikedSongs[0];
+    if (!displaySongs.length) return;
+    const first = displaySongs[0];
     const src = getAudioSource(first);
     if (!src) return;
 
-    // queue set karo
-    setSongs(sortedLikedSongs);
-    // playMusic(downloadUrl, name, duration, image, id, artists, songList)
+    setSongs(displaySongs);
     playMusic(
       src,
       first.name,
@@ -143,14 +164,14 @@ const MyMusic = () => {
       first.image,
       first.id,
       first.artists,
-      sortedLikedSongs
+      displaySongs
     );
   };
 
   const handleShuffleAll = () => {
-    if (!sortedLikedSongs.length) return;
+    if (!displaySongs.length) return;
 
-    const shuffled = [...sortedLikedSongs];
+    const shuffled = [...displaySongs];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -177,6 +198,7 @@ const MyMusic = () => {
     if (!likedSongs.length) return;
     setNewPlaylistName("");
     setSelectedSongIds([]);
+    setModalSearchTerm("");
     setIsCreateModalOpen(true);
   };
 
@@ -223,12 +245,22 @@ const MyMusic = () => {
     likedPlaylists.length === 0 &&
     customPlaylists.length === 0;
 
-  // --------- UI ----------
+  // songs for modal (search inside modal)
+  const modalFilteredSongs = likedSongs.filter((song) => {
+    const term = modalSearchTerm.trim().toLowerCase();
+    if (!term) return true;
+    const name = normalize(song.name);
+    const artistNames = (song.artists?.primary || [])
+      .map((a) => a.name)
+      .join(" ")
+      .toLowerCase();
+    return name.includes(term) || artistNames.includes(term);
+  });
+
   return (
     <>
       <Navbar />
 
-      {/* min-h-screen → niche black patch nahi aayega */}
       <div className="flex flex-col min-h-screen mb-[12rem] gap-[1.75rem]">
         {/* HEADER CARD */}
         <div className="mt-[8.5rem] lg:mt-[6rem] px-[1.6rem] lg:px-[3rem]">
@@ -266,7 +298,7 @@ const MyMusic = () => {
           {/* -------- LIKED SONGS -------- */}
           {likedSongs.length > 0 && (
             <section className="flex flex-col gap-2">
-              <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex flex-col">
                   <h3 className="text-lg lg:text-xl font-semibold">
                     Liked Songs
@@ -277,7 +309,18 @@ const MyMusic = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* search bar for liked songs */}
+                  <input
+                    type="text"
+                    value={songSearchTerm}
+                    onChange={(e) => {
+                      setSongSearchTerm(e.target.value);
+                      setVisibleSongCount(15);
+                    }}
+                    placeholder="Search liked songs"
+                    className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 outline-none w-[11rem] sm:w-[14rem]"
+                  />
                   <select
                     value={sortMode}
                     onChange={(e) => setSortMode(e.target.value)}
@@ -302,9 +345,9 @@ const MyMusic = () => {
                 </div>
               </div>
 
-              {/* songs ke beech halka gap */}
+              {/* songs list */}
               <div className="flex flex-wrap gap-y-2">
-                {sortedLikedSongs.map(
+                {displaySongs.map(
                   (song, index) =>
                     song && (
                       <SongsList
@@ -315,11 +358,24 @@ const MyMusic = () => {
                         name={song.name}
                         duration={song.duration}
                         downloadUrl={song.audio}
-                        song={sortedLikedSongs}
+                        song={displaySongs}
                       />
                     )
                 )}
               </div>
+
+              {/* Load more button (sirf jab search nahi hai) */}
+              {!songSearchTerm &&
+                visibleSongCount < filteredMainSongs.length && (
+                  <button
+                    onClick={() =>
+                      setVisibleSongCount((prev) => prev + 15)
+                    }
+                    className="self-start mt-2 text-xs px-4 py-1.5 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
+                  >
+                    Load more…
+                  </button>
+                )}
             </section>
           )}
 
@@ -350,7 +406,6 @@ const MyMusic = () => {
                   return (
                     <Link key={album.id} to={`/albums/${album.id}`}>
                       <div className="group cursor-pointer flex-none w-[9.5rem] sm:w-[10.5rem]">
-                        {/* square image – playlist style */}
                         <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5">
                           <img
                             src={cover}
@@ -359,7 +414,6 @@ const MyMusic = () => {
                           />
                         </div>
 
-                        {/* text */}
                         <div className="mt-1.5 flex flex-col">
                           <span className="text-sm font-semibold truncate">
                             {title}
@@ -378,15 +432,18 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* -------- LIKED PLAYLISTS -------- */}
+          {/* -------- LIKED PLAYLISTS (horizontal, single row) -------- */}
           {likedPlaylists.length > 0 && (
             <section className="flex flex-col gap-2">
               <h1 className="text-lg lg:text-xl font-semibold mb-1">
                 Liked Playlists
               </h1>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
+              <div className="flex gap-3 lg:gap-4 overflow-x-auto scroll-hide pb-1">
                 {likedPlaylists.map((playlist) => (
-                  <div key={playlist.id} className="w-full">
+                  <div
+                    key={playlist.id}
+                    className="flex-none w-[10rem] sm:w-[11rem]"
+                  >
                     <PlaylistItems {...playlist} />
                   </div>
                 ))}
@@ -394,7 +451,7 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* -------- CUSTOM PLAYLISTS -------- */}
+          {/* -------- CUSTOM PLAYLISTS (horizontal, single row) -------- */}
           {customPlaylists.length > 0 && (
             <section className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
@@ -407,11 +464,11 @@ const MyMusic = () => {
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-3 lg:gap-4">
+              <div className="flex gap-3 lg:gap-4 overflow-x-auto scroll-hide pb-1">
                 {customPlaylists.map((pl) => (
                   <div
                     key={pl.id}
-                    className="w-[47%] sm:w-[31%] md:w-[23%] lg:w-[18%] min-w-[130px] flex flex-col gap-1"
+                    className="flex-none w-[10rem] sm:w-[11rem] flex flex-col gap-1"
                   >
                     <Link to={`/my-playlists/${pl.id}`}>
                       <div className="aspect-square rounded-xl overflow-hidden bg-white/5">
@@ -428,7 +485,8 @@ const MyMusic = () => {
                       </span>
                       <span className="text-xs opacity-70">
                         {pl.songs.length} song
-                        {pl.songs.length > 1 ? "s" : ""} • Custom playlist
+                        {pl.songs.length > 1 ? "s" : ""} • Custom
+                        playlist
                       </span>
                     </div>
                     <button
@@ -456,7 +514,7 @@ const MyMusic = () => {
       {/* CREATE PLAYLIST MODAL */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#09090B] w-[95%] max-w-[550px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3">
+          <div className="bg-[#09090B] w-[95%] max-w-[600px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex flex-col">
                 <span className="text-xs opacity-70 uppercase tracking-[0.16em]">
@@ -480,12 +538,21 @@ const MyMusic = () => {
               className="w-full text-sm px-3 py-2 rounded-lg bg-white/5 border border-white/15 outline-none"
             />
 
+            {/* search inside modal */}
+            <input
+              type="text"
+              placeholder="Search in liked songs"
+              value={modalSearchTerm}
+              onChange={(e) => setModalSearchTerm(e.target.value)}
+              className="w-full text-xs px-3 py-2 rounded-lg bg-white/5 border border-white/15 outline-none mt-1"
+            />
+
             <span className="text-[0.7rem] opacity-70 mt-1">
               Choose songs from your liked songs
             </span>
 
             <div className="overflow-y-auto max-h-[50vh] pr-1">
-              {likedSongs.map((song) => (
+              {modalFilteredSongs.map((song) => (
                 <label
                   key={song.id}
                   className="flex items-center gap-3 py-1.5 cursor-pointer"
@@ -494,7 +561,7 @@ const MyMusic = () => {
                     type="checkbox"
                     checked={selectedSongIds.includes(song.id)}
                     onChange={() => toggleSelectSong(song.id)}
-                    className="accent-white"
+                    className="accent-purple-400"
                   />
                   <div className="flex items-center gap-2">
                     <img
@@ -515,18 +582,20 @@ const MyMusic = () => {
                   </div>
                 </label>
               ))}
+              {modalFilteredSongs.length === 0 && (
+                <div className="text-[0.75rem] opacity-70 py-2">
+                  No songs match your search.
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 mt-2">
-              {/* Cancel button FIX */}
               <button
                 onClick={() => setIsCreateModalOpen(false)}
                 className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
               >
                 Cancel
               </button>
-
-              {/* Create button FIX – ab actually playlist banayega */}
               <button
                 onClick={handleCreatePlaylistSave}
                 className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"

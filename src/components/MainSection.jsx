@@ -261,6 +261,11 @@ const MainSection = () => {
         </div>
       </div>
 
+      
+
+      {/* Mood Playlists – big cards */}
+      <MoodSection />
+
       {/* ===================== MOST STREAMED LOVE SONGS – HINDI ===================== */}
       {loveSongs.length > 0 && (
         <div className="flex flex-col w-full">
@@ -294,10 +299,7 @@ const MainSection = () => {
           </div>
         </div>
       )}
-
-      {/* Mood Playlists – big cards */}
-      <MoodSection />
-
+      
       {/* Golden Era Playlists */}
       <GoldenEraSection />
 

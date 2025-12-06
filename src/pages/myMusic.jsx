@@ -89,7 +89,7 @@ const MyMusic = () => {
     } else if (sortMode === "za") {
       arr.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
     }
-    // "recent" ke case me order waise ka waisa (localStorage insertion order)
+    // "recent" me order same hi rakha
     return arr;
   };
 
@@ -97,12 +97,12 @@ const MyMusic = () => {
 
   const handlePlayAll = () => {
     if (!sortedLikedSongs.length) return;
-    // yaha se direct play kara sakte ho agar chaho
+    // yahan se direct queue play kara sakte ho agar chahe
   };
 
   const handleShuffleAll = () => {
     if (!sortedLikedSongs.length) return;
-    // queue shuffle logic baad me add kar sakte ho
+    // shuffle logic baad me add kar sakte ho
   };
 
   // ---- Create playlist ----
@@ -255,7 +255,7 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED ALBUMS – fixed width cards, Top Albums jaisa */}
+          {/* LIKED ALBUMS – fixed width + fixed height cards */}
           {likedAlbums.length > 0 && (
             <section className="flex flex-col gap-2">
               <h1 className="text-lg lg:text-xl font-semibold mb-1">
@@ -268,7 +268,6 @@ const MyMusic = () => {
                   onClick={() => scrollLeft(albumsScrollRef)}
                 />
 
-                {/* yaha har album ko fixed width box diya hai */}
                 <div
                   className="flex overflow-x-auto scroll-hide px-3 lg:px-0 scroll-smooth gap-3 lg:gap-4"
                   ref={albumsScrollRef}
@@ -276,9 +275,11 @@ const MyMusic = () => {
                   {likedAlbums.map((album) => (
                     <div
                       key={album.id}
-                      className="min-w-[16rem] max-w-[16rem]"
+                      className="flex-none w-[16rem] max-w-[16rem] h-[14rem]"
                     >
-                      <AlbumItems {...album} />
+                      <div className="h-full">
+                        <AlbumItems {...album} />
+                      </div>
                     </div>
                   ))}
                 </div>

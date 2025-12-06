@@ -4,6 +4,8 @@ import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
 import SongsList from "../components/SongsList";
+// TOP imports me ye pakka rakho:
+import AlbumItems from "../components/Items/AlbumItems";
 
 import { FaHeart } from "react-icons/fa6";
 import {

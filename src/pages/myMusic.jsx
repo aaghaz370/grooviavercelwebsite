@@ -1,3 +1,4 @@
+// src/pages/MyMusic.jsx
 import { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
@@ -94,16 +95,14 @@ const MyMusic = () => {
 
   const sortedLikedSongs = getSortedSongs();
 
-  // ---- Play all / Shuffle all from liked songs ----
   const handlePlayAll = () => {
     if (!sortedLikedSongs.length) return;
-    // SongsList ke andar playMusic handle ho raha h, yahan sirf queue pass kar rahe
-    // isliye direct play nahi kar rahe, just scroll/list ke liye buttons hain
+    // yaha se direct play kara sakte ho agar chaho
   };
 
   const handleShuffleAll = () => {
     if (!sortedLikedSongs.length) return;
-    // yahan bhi sirf UI button, actual shuffle queue tum chahe to baad me add kar sakte ho
+    // queue shuffle logic baad me add kar sakte ho
   };
 
   // ---- Create playlist ----
@@ -248,7 +247,6 @@ const MyMusic = () => {
                         name={song.name}
                         duration={song.duration}
                         downloadUrl={song.audio}
-                        // queue ke liye pura array pass kar raha hoon
                         song={sortedLikedSongs}
                       />
                     )
@@ -257,7 +255,7 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED ALBUMS – pehle jaisa horizontal scroll */}
+          {/* LIKED ALBUMS – fixed width cards, Top Albums jaisa */}
           {likedAlbums.length > 0 && (
             <section className="flex flex-col gap-2">
               <h1 className="text-lg lg:text-xl font-semibold mb-1">
@@ -269,14 +267,22 @@ const MyMusic = () => {
                   className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
                   onClick={() => scrollLeft(albumsScrollRef)}
                 />
+
+                {/* yaha har album ko fixed width box diya hai */}
                 <div
-                  className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-2 overflow-x-auto scroll-hide w-max px-3 lg:px-0 scroll-smooth"
+                  className="flex overflow-x-auto scroll-hide px-3 lg:px-0 scroll-smooth gap-3 lg:gap-4"
                   ref={albumsScrollRef}
                 >
                   {likedAlbums.map((album) => (
-                    <AlbumItems key={album.id} {...album} />
+                    <div
+                      key={album.id}
+                      className="min-w-[16rem] max-w-[16rem]"
+                    >
+                      <AlbumItems {...album} />
+                    </div>
                   ))}
                 </div>
+
                 <MdOutlineKeyboardArrowRight
                   className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
                   onClick={() => scrollRight(albumsScrollRef)}
@@ -285,7 +291,7 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED PLAYLISTS – grid (ye tumhe pasand tha, same hi rakha) */}
+          {/* LIKED PLAYLISTS */}
           {likedPlaylists.length > 0 && (
             <section className="flex flex-col gap-2">
               <h1 className="text-lg lg:text-xl font-semibold mb-1">
@@ -301,7 +307,7 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* CUSTOM PLAYLISTS – style similar to liked playlists */}
+          {/* CUSTOM PLAYLISTS */}
           {customPlaylists.length > 0 && (
             <section className="flex flex-col gap-2">
               <div className="flex items-center justify-between">

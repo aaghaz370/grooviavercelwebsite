@@ -16,7 +16,7 @@ const PlaylistDetails = () => {
   const { id } = useParams();
   const [details, setDetails] = useState({});
   const [loading, setLoading] = useState(true);
-  const [list , setList ] = useState({});
+  const [list, setList] = useState({});
   const [error, setError] = useState(null);
   const { playMusic } = useContext(MusicContext);
   const [likedPlaylists, setLikedPlaylists] = useState(() => {
@@ -28,14 +28,13 @@ const PlaylistDetails = () => {
   const [playlistArtists, setPlaylistArtists] = useState([]);
   const [extraLoading, setExtraLoading] = useState(true);
 
+  // 👉 Playlist detail + songs
   useEffect(() => {
     const fetchDetails = async () => {
       try {
         const data = await fetchplaylistsByID(id);
         setDetails(data);
         setList(data.data.songs);
-
-        // console.log(list);
       } catch (err) {
         setError("Failed to fetch playlist details. Please try again later.");
       } finally {
@@ -46,10 +45,71 @@ const PlaylistDetails = () => {
     fetchDetails();
   }, [id]);
 
+  // 👉 Liked playlists ko localStorage me rakhna
   useEffect(() => {
-    // Update localStorage when likedPlaylists changes
     localStorage.setItem("likedPlaylists", JSON.stringify(likedPlaylists));
   }, [likedPlaylists]);
+
+  // 👉 Playlist ke andar jo artists hain unka unique list
+  useEffect(() => {
+    const playlistData = details.data;
+    if (!playlistData) return;
+
+    const songArtists =
+      playlistData.songs?.flatMap((s) => s.artists?.primary || []) || [];
+
+    const topArtists = playlistData.artists || [];
+    const all = [...songArtists, ...topArtists];
+
+    const unique = all.filter(
+      (a, i, self) => a.id && i === self.findIndex((t) => t.id === a.id)
+    );
+
+    setPlaylistArtists(unique);
+  }, [details]);
+
+  // 👉 Similar & Trending playlists
+  useEffect(() => {
+    const playlistData = details.data;
+    if (!playlistData) return;
+
+    const fetchExtra = async () => {
+      try {
+        const primaryArtistName =
+          playlistData.artists?.[0]?.name ||
+          playlistData.songs?.[0]?.artists?.primary?.[0]?.name ||
+          null;
+
+        const baseQuery =
+          primaryArtistName ||
+          playlistData.name?.split("-")[0].trim() ||
+          playlistData.name;
+
+        const lang = playlistData.language || "hindi";
+
+        const [similarRes, trendingRes] = await Promise.all([
+          searchPlayListByQuery(baseQuery),
+          searchPlayListByQuery("Top " + lang),
+        ]);
+
+        const allSimilar = similarRes?.data?.results || [];
+        const filteredSimilar = allSimilar
+          .filter((p) => p.id !== playlistData.id)
+          .slice(0, 10);
+
+        const trending = (trendingRes?.data?.results || []).slice(0, 10);
+
+        setSimilarPlaylists(filteredSimilar);
+        setTrendingPlaylists(trending);
+      } catch (e) {
+        console.error("extra playlist fetch error", e);
+      } finally {
+        setExtraLoading(false);
+      }
+    };
+
+    fetchExtra();
+  }, [details]);
 
   if (loading) {
     return (
@@ -68,7 +128,8 @@ const PlaylistDetails = () => {
   }
 
   const playlistData = details.data || {};
-  const playlistImage = playlistData.image?.[2]?.url || "/default-image.png"; // Fallback image
+  const playlistImage =
+    playlistData.image?.[2]?.url || "/default-image.png"; // Fallback image
 
   const toggleLikePlaylist = () => {
     let updatedPlaylists = [...likedPlaylists];
@@ -81,7 +142,7 @@ const PlaylistDetails = () => {
       updatedPlaylists.push({
         id: playlistData.id,
         name: playlistData.name,
-        image: playlistImage, // Store the image as well
+        image: playlistImage,
       });
     }
 
@@ -141,23 +202,23 @@ const PlaylistDetails = () => {
               Total Duration : {formatDuration(totalDuration)}
             </p>
             <div className="flex lg:mt-4 gap-4">
-              <span className=" hidden lg:flex justify-center items-center h-[3rem] w-[3rem] border-[1px] border-[#8f8f8f6e]  rounded-full cursor-pointer ">
+              <span className="hidden lg:flex justify-center items-center h-[3rem] w-[3rem] border-[1px] border-[#8f8f8f6e] rounded-full cursor-pointer ">
                 <FaPlay
                   className=" text-xl icon active:scale-90"
                   onClick={playFirstSong}
                 />
               </span>
               <button
-              onClick={toggleLikePlaylist}
-              title="Like Playlist"
-              className="hidden mb-[1.4rem] border-[1px] border-[#8f8f8f6e] h-[3rem] w-[3rem] lg:flex justify-center items-center rounded-full "
-            >
-              {likedPlaylists.some((p) => p.id === playlistData.id) ? (
-                <FaHeart className="text-red-500 text-2xl" />
-              ) : (
-                <FaRegHeart className="icon text-2xl" />
-              )}
-            </button>
+                onClick={toggleLikePlaylist}
+                title="Like Playlist"
+                className="hidden mb-[1.4rem] border-[1px] border-[#8f8f8f6e] h-[3rem] w-[3rem] lg:flex justify-center items-center rounded-full "
+              >
+                {likedPlaylists.some((p) => p.id === playlistData.id) ? (
+                  <FaHeart className="text-red-500 text-2xl" />
+                ) : (
+                  <FaRegHeart className="icon text-2xl" />
+                )}
+              </button>
             </div>
           </div>
           <div className="flex gap-3">
@@ -181,6 +242,7 @@ const PlaylistDetails = () => {
           </div>
         </div>
 
+        {/* Songs list */}
         <div>
           <h2 className="lg:mt-8 mt-2 mb-2 ml-2 text-2xl font-semibold">
             Top Songs
@@ -197,10 +259,8 @@ const PlaylistDetails = () => {
             )}
           </div>
         </div>
-      
 
-
-      {/* Similar Playlists */}
+        {/* Similar Playlists */}
         {similarPlaylists.length > 0 && (
           <div className="mt-6">
             <h2 className="text-2xl font-semibold mb-3 ml-2">
@@ -229,77 +289,13 @@ const PlaylistDetails = () => {
             <ArtistSlider artists={playlistArtists} />
           </div>
         )}
+      </div>
 
-        </div>
       <Player />
       <Navigator />
       <Footer />
     </>
   );
 };
-
-// 👉 Playlist ke andar jo artists hain unka unique list
-  useEffect(() => {
-    const playlistData = details.data;
-    if (!playlistData) return;
-
-    const songArtists =
-      playlistData.songs?.flatMap((s) => s.artists?.primary || []) || [];
-
-    const topArtists = playlistData.artists || [];
-
-    const all = [...songArtists, ...topArtists];
-
-    const unique = all.filter(
-      (a, i, self) => a.id && i === self.findIndex((t) => t.id === a.id)
-    );
-
-    setPlaylistArtists(unique);
-  }, [details]);
-
-// 👉 Similar & Trending playlists
-  useEffect(() => {
-    const playlistData = details.data;
-    if (!playlistData) return;
-
-    const fetchExtra = async () => {
-      try {
-        // primary / top artist ka naam ya playlist name ka first part
-        const primaryArtistName =
-          playlistData.artists?.[0]?.name ||
-          playlistData.songs?.[0]?.artists?.primary?.[0]?.name ||
-          null;
-
-        const baseQuery =
-          primaryArtistName ||
-          playlistData.name?.split("-")[0].trim() ||
-          playlistData.name;
-
-        const lang = playlistData.language || "hindi";
-
-        const [similarRes, trendingRes] = await Promise.all([
-          searchPlayListByQuery(baseQuery),
-          searchPlayListByQuery("Top " + lang),
-        ]);
-
-        const allSimilar = similarRes?.data?.results || [];
-        const filteredSimilar = allSimilar
-          .filter((p) => p.id !== playlistData.id)
-          .slice(0, 10);
-
-        const trending = (trendingRes?.data?.results || []).slice(0, 10);
-
-        setSimilarPlaylists(filteredSimilar);
-        setTrendingPlaylists(trending);
-      } catch (e) {
-        console.error("extra playlist fetch error", e);
-      } finally {
-        setExtraLoading(false);
-      }
-    };
-
-    fetchExtra();
-  }, [details]);
-
 
 export default PlaylistDetails;

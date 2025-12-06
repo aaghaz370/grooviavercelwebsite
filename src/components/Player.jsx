@@ -40,7 +40,7 @@ const Player = () => {
   const [isMaximized, setisMaximized] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
 
-  // ⬇️ detail ko null se start kiya
+  // detail null se start
   const [detail, setDetails] = useState(null);
 
   const [list, setList] = useState({});
@@ -50,6 +50,35 @@ const Player = () => {
   });
 
   const inputRef = useRef();
+
+  // swipe gesture ke liye
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current == null) return;
+    touchEndX.current = e.changedTouches[0].clientX;
+
+    const diff = touchEndX.current - touchStartX.current;
+
+    // threshold ~ 50px
+    if (Math.abs(diff) > 50) {
+      if (diff < 0) {
+        // left swipe -> next
+        nextSong();
+      } else {
+        // right swipe -> prev
+        prevSong();
+      }
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
 
   useEffect(() => {
     if (!currentSong) return;
@@ -98,7 +127,6 @@ const Player = () => {
   useEffect(() => {
     const albumDetail = async () => {
       const result = await getSongById(currentSong.id);
-      // result.data[0] ho bhi sakta hai, nahi bhi
       setDetails(result?.data?.[0] || null);
     };
     if (currentSong?.id) {
@@ -148,6 +176,7 @@ const Player = () => {
   }, [currentSong, volume, nextSong]);
 
   const handleProgressChange = (event) => {
+    if (!currentSong) return;
     const newPercentage = parseFloat(event.target.value);
     const newTime = (newPercentage / 100) * Number(currentSong.duration);
     currentSong.audio.currentTime = newTime;
@@ -251,7 +280,6 @@ const Player = () => {
     currentSong.audio.loop = repeatMode === "one";
   }
 
-  // album id safely nikala
   const albumId = detail?.album?.id;
   const albumName = detail?.album?.name || "";
 
@@ -269,6 +297,7 @@ const Player = () => {
         }`}
       >
         <div className="flex flex-col w-full ">
+          {/* MINI PLAYER */}
           {!isMaximized && currentSong && (
             <>
               <form className="flex items-center w-full lg:mb-2 mb-1 gap-3 h-[10px] ">
@@ -301,7 +330,12 @@ const Player = () => {
                 </span>
               </form>
               <div className=" h-[3rem] w-full">
-                <div className="flex justify-between items-center  ">
+                <div
+                  className="flex justify-between items-center"
+                  // mini bar par bhi swipe enable
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                >
                   <div
                     className="flex w-full  lg:w-auto"
                     onClick={handleMaximized}
@@ -442,6 +476,7 @@ const Player = () => {
             </>
           )}
 
+          {/* MAX PLAYER */}
           {isMaximized && currentSong && (
             <>
               <div className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth">
@@ -452,7 +487,12 @@ const Player = () => {
                   />
                 </div>
                 <div className=" ">
-                  <div className="flex lg:flex-row flex-col">
+                  {/* ye pura top section swipeable */}
+                  <div
+                    className="flex lg:flex-row flex-col"
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                  >
                     <div className=" flex  justify-center items-center lg:pl-[2.5rem]">
                       <img
                         src={currentSong?.image || " "}
@@ -594,7 +634,6 @@ const Player = () => {
                             />
                           </div>
 
-                          {/* Share only jab album id mile */}
                           {albumId && (
                             <IoShareSocial
                               className="icon text-3xl hidden lg:block cursor-pointer  lg:hover:scale-105 mr-4 "
@@ -611,6 +650,8 @@ const Player = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* content below */}
                   <div className="flex flex-col overflow-hidden  p-1">
                     <div>
                       {Array.isArray(suggetions) && suggetions.length > 0 && (
@@ -658,7 +699,6 @@ const Player = () => {
                     </div>
 
                     <div className="flex flex-col lg:flex-row gap-[2rem] ">
-                      {/* From Album ... sirf jab album id ho */}
                       {albumId && (
                         <div className="flex flex-col ">
                           <h2 className="pr-1 text-xl lg:text-2xl font-semibold  w-full ml-[2rem] lg:ml-[3.5rem] ">
@@ -683,6 +723,20 @@ const Player = () => {
                           </Link>
                         </div>
                       )}
+                    </div>
+
+                    {/* MAX PLAYER ke andar small footer – original footer ka feel */}
+                    <div className="flex flex-col items-center justify-center mt-6 mb-4 opacity-80">
+                      <div className="flex items-center gap-1">
+                        <span className="bg"></span>
+                        <span className="Musi font-extrabold text-xl">
+                          Groo
+                        </span>
+                        <span className="fy font-extrabold text-xl">via</span>
+                      </div>
+                      <p className="text-xs mt-2">
+                        Made with ❤️ by Rolex Sir.
+                      </p>
                     </div>
                   </div>
                 </div>

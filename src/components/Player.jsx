@@ -47,7 +47,7 @@ const Player = () => {
     return JSON.parse(localStorage.getItem("likedSongs")) || [];
   });
 
-  // ---- FULLSCREEN STATE (shared with footer via body class) ----
+  // ---- FULLSCREEN STATE (for home footer hide/show) ----
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const Player = () => {
       console.error("Fullscreen error", err);
     }
   };
-  // --------------------------------------------------------------
+  // ------------------------------------------------------
 
   const inputRef = useRef();
 
@@ -88,7 +88,7 @@ const Player = () => {
     }
   };
 
-  // ----- SWIPE FOR NEXT/PREV -----
+  // ----- SWIPE FOR NEXT/PREV (sirf top player area) -----
   const swipeStartX = useRef(null);
   const swipeStartY = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -126,7 +126,7 @@ const Player = () => {
     const delta = swipeOffset;
     const width =
       swipeAreaRef.current?.offsetWidth || window.innerWidth || 300;
-    const threshold = width * 0.3; // 30% screen se jyada tabhi change
+    const threshold = width * 0.3; // 30% se jyada tabhi change
 
     if (Math.abs(delta) > threshold) {
       const goingNext = delta < 0; // right swipe -> next
@@ -531,13 +531,7 @@ const Player = () => {
           {/* MAXIMIZED VIEW */}
           {isMaximized && currentSong && (
             <>
-              <div
-                className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth"
-                ref={swipeAreaRef}
-                onTouchStart={handleSwipeStart}
-                onTouchMove={handleSwipeMove}
-                onTouchEnd={handleSwipeEnd}
-              >
+              <div className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth">
                 <div className=" flex w-[97%] justify-end ">
                   <IoIosClose
                     className="  icon text-[3rem] cursor-pointer"
@@ -545,7 +539,12 @@ const Player = () => {
                   />
                 </div>
                 <div className=" ">
+                  {/* SWIPE AREA only on this top block */}
                   <div
+                    ref={swipeAreaRef}
+                    onTouchStart={handleSwipeStart}
+                    onTouchMove={handleSwipeMove}
+                    onTouchEnd={handleSwipeEnd}
                     className="flex lg:flex-row flex-col transform-gpu transition-transform duration-200"
                     style={{ transform: `translateX(${swipeOffset}px)` }}
                   >
@@ -706,6 +705,8 @@ const Player = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* LOWER CONTENT (no swipe here) */}
                   <div className="flex flex-col overflow-hidden  p-1">
                     <div>
                       {Array.isArray(suggetions) && suggetions.length > 0 && (
@@ -719,7 +720,7 @@ const Player = () => {
                               onClick={() => scrollLeft(scrollRef)}
                             />
                             <div
-                              className="grid grid-rows-1  grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
+                              className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
                               ref={scrollRef}
                             >
                               {suggetions.map((songItem, index) => (

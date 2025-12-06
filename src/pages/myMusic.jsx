@@ -271,113 +271,114 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* -------- LIKED ALBUMS (NEW FIXED STYLE) -------- */}
-          {likedAlbums.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h1 className="text-lg lg:text-xl font-semibold mb-1">
-                Liked Albums
-              </h1>
+          {/* LIKED ALBUMS – Top Albums style, fixed size + max 3 tracks + clickable */}
+{likedAlbums.length > 0 && (
+  <section className="flex flex-col gap-2">
+    <h1 className="text-lg lg:text-xl font-semibold mb-1">
+      Liked Albums
+    </h1>
 
-              {/* Horizontal scroll – har card same size */}
-              <div
-                ref={albumsScrollRef}
-                className="flex overflow-x-auto scroll-hide gap-4 pb-1"
-              >
-                {likedAlbums.map((album) => {
-                  const apiSongs = albumTrackMap[album.id] || [];
-                  const songs = apiSongs.length
-                    ? apiSongs
-                    : Array.isArray(album.songs)
-                    ? album.songs
-                    : [];
+    <div
+      ref={albumsScrollRef}
+      className="flex overflow-x-auto scroll-hide gap-4 pb-1"
+    >
+      {likedAlbums.map((album) => {
+        // API se aaya to albumTrackMap, warna album.songs
+        const allSongsFromApi = albumTrackMap[album.id] || [];
+        const allSongs = allSongsFromApi.length
+          ? allSongsFromApi
+          : Array.isArray(album.songs)
+          ? album.songs
+          : [];
 
-                  const sampleTracks = songs.slice(0, 3);
+        const sampleTracks = Array.isArray(allSongs)
+          ? allSongs.slice(0, 3)
+          : [];
 
-                  const title =
-                    album.name ||
-                    album.title ||
-                    album.album ||
-                    "Unknown Album";
+        const title =
+          album.name || album.title || album.album || "Unknown Album";
 
-                  const artist =
-                    album.primaryArtists ||
-                    album.artist ||
-                    album.subtitle ||
-                    "";
+        const artist =
+          album.primaryArtists ||
+          album.artist ||
+          album.subtitle ||
+          "";
 
-                  const songsCount =
-                    album.songCount ||
-                    (Array.isArray(songs) ? songs.length : 0);
+        const songsCount =
+          album.songCount ||
+          (Array.isArray(allSongs) ? allSongs.length : 0);
 
-                  const cover = album.image || album.thumbnail || "/Unknown.png";
+        const cover = album.image || album.thumbnail || "/Unknown.png";
 
-                  return (
-                    <div
-                      key={album.id}
-                      className="flex-none w-[260px] h-[260px]"
-                    >
-                      <div className="h-full w-full rounded-[1.75rem] bg-gradient-to-br from-white/12 via-white/5 to-white/5 shadow-lg overflow-hidden p-4 flex flex-col">
-                        {/* Top: album cover + info */}
-                        <div className="flex items-center gap-3 mb-3">
-                          <img
-                            src={cover}
-                            alt={title}
-                            className="h-14 w-14 rounded-xl object-cover shadow-md"
-                          />
-                          <div className="flex flex-col overflow-hidden">
-                            <span className="text-sm font-semibold truncate">
-                              {title}
+        return (
+          <div
+            key={album.id}
+            className="flex-none w-[82vw] max-w-[21rem] h-[15.5rem]"
+          >
+            <Link to={`/albums/${album.id}`}>
+              <div className="h-full w-full rounded-[1.75rem] bg-gradient-to-br from-white/12 via-white/5 to-white/5 shadow-lg overflow-hidden p-4 flex flex-col">
+                {/* Top: cover + info */}
+                <div className="flex items-center gap-3 mb-3">
+                  <img
+                    src={cover}
+                    alt={title}
+                    className="h-14 w-14 rounded-xl object-cover shadow-md"
+                  />
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-sm font-semibold truncate">
+                      {title}
+                    </span>
+                    {artist && (
+                      <span className="text-xs opacity-80 truncate">
+                        {artist}
+                      </span>
+                    )}
+                    {songsCount > 0 && (
+                      <span className="text-[0.7rem] opacity-60">
+                        {songsCount} song
+                        {songsCount > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom: max 3 tracks */}
+                {sampleTracks.length > 0 && (
+                  <div className="mt-auto bg-black/15 rounded-2xl px-3 py-2 overflow-hidden">
+                    <div className="space-y-1.5">
+                      {sampleTracks.map((t) => {
+                        const tName = t.name || t.title || "";
+                        const tArtist =
+                          (t.artists?.primary || [])
+                            .map((a) => a.name)
+                            .join(", ") || t.subtitle || "";
+                        return (
+                          <div
+                            key={t.id || tName}
+                            className="text-xs flex flex-col truncate"
+                          >
+                            <span className="font-medium truncate">
+                              {tName}
                             </span>
-                            {artist && (
-                              <span className="text-xs opacity-80 truncate">
-                                {artist}
-                              </span>
-                            )}
-                            {songsCount > 0 && (
-                              <span className="text-[0.7rem] opacity-60">
-                                {songsCount} song
-                                {songsCount > 1 ? "s" : ""}
+                            {tArtist && (
+                              <span className="opacity-70 truncate">
+                                {tArtist}
                               </span>
                             )}
                           </div>
-                        </div>
-
-                        {/* Bottom: sample tracks (max 3) */}
-                        {sampleTracks.length > 0 && (
-                          <div className="mt-auto bg-black/15 rounded-2xl px-3 py-2 overflow-hidden">
-                            <div className="space-y-1.5">
-                              {sampleTracks.map((t) => {
-                                const tName = t.name || t.title || "";
-                                const tArtist =
-                                  (t.artists?.primary || [])
-                                    .map((a) => a.name)
-                                    .join(", ") || t.subtitle || "";
-                                return (
-                                  <div
-                                    key={t.id || tName}
-                                    className="text-xs flex flex-col truncate"
-                                  >
-                                    <span className="font-medium truncate">
-                                      {tName}
-                                    </span>
-                                    {tArtist && (
-                                      <span className="opacity-70 truncate">
-                                        {tArtist}
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
-            </section>
-          )}
+            </Link>
+          </div>
+        );
+      })}
+    </div>
+  </section>
+)}
 
           {/* -------- LIKED PLAYLISTS -------- */}
           {likedPlaylists.length > 0 && (
@@ -526,7 +527,7 @@ const MyMusic = () => {
                 Cancel
               </button>
               <button
-                onClick={handleCreatePlaylistSave}
+                onClick={() => setIsCreateModalOpen(false)}
                 className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"
               >
                 Create

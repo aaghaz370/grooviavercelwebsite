@@ -6,67 +6,86 @@
 export const moodPlaylists = [
   {
     id: "158221835", // JioSaavn playlist id (example)
-    name: "Dil Ka Sukoon",
-    description: "Soft & calm tracks for peaceful nights",
-    moodTag: "Sad · Lofi",
+    name: "Best Of Sad Songs",
+    description: "Popular Heartbreak Hits",
+    moodTag: "Sad · Heartbreak",
     image: [
       {
         quality: "50x50",
-        url: "https://c.saavncdn.com/editorial/FILTRDilKaSukoon_20241107054854_50x50.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfSadSongsHindi_20240627124807.jpg?bch=1762945491",
       },
       {
         quality: "150x150",
-        url: "https://c.saavncdn.com/editorial/FILTRDilKaSukoon_20241107054854_150x150.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfSadSongsHindi_20240627124807.jpg?bch=1762945491",
       },
       {
         quality: "500x500",
-        url: "https://c.saavncdn.com/editorial/FILTRDilKaSukoon_20241107054854_500x500.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfSadSongsHindi_20240627124807.jpg?bch=1762945491",
       },
     ],
   },
 
   {
     id: "932189657",
-    name: "Best Of Dance - Hindi",
-    description: "High energy Bollywood bangers",
-    moodTag: "Workout · Party",
+    name: "Best Of Dance",
+    description: "The Best Of Dance Music",
+    moodTag: "Dance · Party",
     image: [
       {
         quality: "50x50",
-        url: "https://c.saavncdn.com/editorial/BestOfDanceHindi_20241121062228_50x50.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfDanceHindi_20251125093505.jpg?bch=1764065118",
       },
       {
         quality: "150x150",
-        url: "https://c.saavncdn.com/editorial/BestOfDanceHindi_20241121062228_150x150.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfDanceHindi_20251125093505.jpg?bch=1764065118",
       },
       {
         quality: "500x500",
-        url: "https://c.saavncdn.com/editorial/BestOfDanceHindi_20241121062228_500x500.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfDanceHindi_20251125093505.jpg?bch=1764065118",
       },
     ],
   },
 
   {
     id: "903166403",
-    name: "Best Of Romance - Hindi",
+    name: "Best Of Romance",
     description: "Evergreen romantic hits for late nights",
-    moodTag: "Romantic · Classic",
+    moodTag: "Romantic · Bollywood",
     image: [
       {
         quality: "50x50",
-        url: "https://c.saavncdn.com/editorial/BestOfRomanceHindi_20250131090151_50x50.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfRomanceHindi_20251125041820.jpg?bch=1764046113",
       },
       {
         quality: "150x150",
-        url: "https://c.saavncdn.com/editorial/BestOfRomanceHindi_20250131090151_150x150.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfRomanceHindi_20251125041820.jpg?bch=1764046113",
       },
       {
         quality: "500x500",
-        url: "https://c.saavncdn.com/editorial/BestOfRomanceHindi_20250131090151_500x500.jpg",
+        url: "https://c.saavncdn.com/editorial/BestOfRomanceHindi_20251125041820.jpg?bch=1764046113",
       },
     ],
   },
 
+    id: "156710699",
+    name: "Bollywood Rock - Workout Mix",
+    description: "Have A Rocking Workout Session",
+    moodTag: "Workout · Gym",
+    image: [
+      {
+        quality: "50x50",
+        url: "https://c.saavncdn.com/editorial/BollywoodRockWorkoutMix_20240229050234.jpg?bch=1762945965",
+      },
+      {
+        quality: "150x150",
+        url: "https://c.saavncdn.com/editorial/BollywoodRockWorkoutMix_20240229050234.jpg?bch=1762945965",
+      },
+      {
+        quality: "500x500",
+        url: "https://c.saavncdn.com/editorial/BollywoodRockWorkoutMix_20240229050234.jpg?bch=1762945965",
+      },
+    ],
+  },
   // aur bhi moods yahan add kar sakta hai:
   // { id, name, description, moodTag, image: [...] }
 ];

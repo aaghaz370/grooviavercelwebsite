@@ -1,4 +1,9 @@
-import { useState, useEffect, useRef, useContext } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useContext
+} from "react";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
@@ -19,14 +24,19 @@ const MyMusic = () => {
   const [likedAlbums, setLikedAlbums] = useState([]);
   const [likedPlaylists, setLikedPlaylists] = useState([]);
 
-  // sort + custom playlists
-  const [sortMode, setSortMode] = useState("recent"); // "recent" | "az" | "za"
+  const [sortMode, setSortMode] = useState("recent"); // recent | az | za
+
+  // custom playlists (local only)
   const [customPlaylists, setCustomPlaylists] = useState([]);
+  const [showCustomPlaylists, setShowCustomPlaylists] = useState(true);
   const [activePlaylist, setActivePlaylist] = useState(null);
 
-  // scroll refs
+  // create playlist modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [selectedSongIds, setSelectedSongIds] = useState([]);
+
   const albumsScrollRef = useRef(null);
-  const playlistsScrollRef = useRef(null);
 
   const { playMusic } = useContext(MusicContext);
 
@@ -47,7 +57,19 @@ const MyMusic = () => {
     setCustomPlaylists(storedCustom);
   }, []);
 
-  // sort helper
+  // helpers
+  const scrollLeft = (ref) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: -800, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = (ref) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: 800, behavior: "smooth" });
+    }
+  };
+
   const getSortedSongs = () => {
     const arr = [...likedSongs];
     if (sortMode === "az") {
@@ -55,21 +77,12 @@ const MyMusic = () => {
     } else if (sortMode === "za") {
       arr.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
     }
-    // "recent" ke liye localStorage ka order as-is
     return arr;
   };
 
   const sortedLikedSongs = getSortedSongs();
 
-  const scrollLeft = (ref) => {
-    if (ref.current) ref.current.scrollBy({ left: -800, behavior: "smooth" });
-  };
-
-  const scrollRight = (ref) => {
-    if (ref.current) ref.current.scrollBy({ left: 800, behavior: "smooth" });
-  };
-
-  // --- Play All / Shuffle All only from liked songs ---
+  // ---- play all / shuffle from liked songs ----
   const handlePlayAll = () => {
     if (!sortedLikedSongs.length) return;
     const first = sortedLikedSongs[0];
@@ -97,22 +110,36 @@ const MyMusic = () => {
     );
   };
 
-  // --- Custom playlists (local only) ---
-  const handleCreatePlaylist = () => {
+  // ---- playlist creation ----
+  const openCreatePlaylist = () => {
     if (!likedSongs.length) return;
-    const name = prompt("Playlist name (e.g. Road Trip, Study, Chill):");
-    if (!name) return;
+    setNewPlaylistName("");
+    setSelectedSongIds([]); // user khud choose karega
+    setIsCreateModalOpen(true);
+  };
+
+  const toggleSelectSong = (id) => {
+    setSelectedSongIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleCreatePlaylistSave = () => {
+    const name = newPlaylistName.trim();
+    if (!name || selectedSongIds.length === 0) return;
 
     const newPlaylist = {
       id: Date.now(),
-      name: name.trim(),
+      name,
       createdAt: Date.now(),
-      songIds: likedSongs.map((s) => s.id),
+      songIds: selectedSongIds,
     };
 
     const updated = [newPlaylist, ...customPlaylists];
     setCustomPlaylists(updated);
     localStorage.setItem("customPlaylists", JSON.stringify(updated));
+
+    setIsCreateModalOpen(false);
   };
 
   const handleDeletePlaylist = (id) => {
@@ -147,6 +174,40 @@ const MyMusic = () => {
     );
   };
 
+  const updatePlaylistSongs = (playlistId, newSongIds) => {
+    setCustomPlaylists((prev) => {
+      const updated = prev.map((pl) =>
+        pl.id === playlistId ? { ...pl, songIds: newSongIds } : pl
+      );
+      localStorage.setItem("customPlaylists", JSON.stringify(updated));
+      return updated;
+    });
+
+    setActivePlaylist((prev) =>
+      prev && prev.id === playlistId ? { ...prev, songIds: newSongIds } : prev
+    );
+  };
+
+  const handleRemoveSongFromPlaylist = (songId) => {
+    if (!activePlaylist) return;
+    const newIds = activePlaylist.songIds.filter((id) => id !== songId);
+    updatePlaylistSongs(activePlaylist.id, newIds);
+  };
+
+  const handleAddSongToPlaylist = (songId) => {
+    if (!activePlaylist) return;
+    if (activePlaylist.songIds.includes(songId)) return;
+    const newIds = [...activePlaylist.songIds, songId];
+    updatePlaylistSongs(activePlaylist.id, newIds);
+  };
+
+  const getPlaylistCover = (playlist) => {
+    const firstSong = likedSongs.find((s) =>
+      playlist.songIds.includes(s.id)
+    );
+    return firstSong?.image || "/Unknown.png";
+  };
+
   const nothingLiked =
     likedSongs.length === 0 &&
     likedAlbums.length === 0 &&
@@ -156,42 +217,45 @@ const MyMusic = () => {
   return (
     <>
       <Navbar />
-      <div className="flex flex-col mb-[12rem] gap-[1.75rem]">
-        {/* HEADER */}
-        <div className="lg:ml-[3rem] ml-[1.6rem] flex items-center justify-between mt-[8.5rem] lg:mt-[6rem] mr-[1.6rem]">
-          <div className="flex items-center gap-3">
-            <span className="flex justify-center items-center h-[3.2rem] w-[3.2rem] lg:h-[3.5rem] lg:w-[3.5rem] rounded-xl liked">
-              <FaHeart className="text-2xl icon" />
-            </span>
-            <div className="flex flex-col">
-              <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
-                Library
-              </span>
-              <h2 className="text-[1.5rem] lg:text-[1.8rem] font-semibold lg:font-bold leading-tight">
-                My Music
-              </h2>
-              <span className="text-xs opacity-70">
-                Liked songs, albums & playlists at one place
-              </span>
-            </div>
-          </div>
 
-          {/* New playlist button */}
-          {likedSongs.length > 0 && (
-            <button
-              onClick={handleCreatePlaylist}
-              className="text-xs px-3 py-1.5 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 backdrop-blur-sm"
-            >
-              + Create playlist
-            </button>
-          )}
+      <div className="flex flex-col mb-[12rem] gap-[1.75rem]">
+        {/* HEADER CARD */}
+        <div className="mt-[8.5rem] lg:mt-[6rem] px-[1.6rem] lg:px-[3rem]">
+          <div className="card flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="flex justify-center items-center h-[3.2rem] w-[3.2rem] lg:h-[3.5rem] lg:w-[3.5rem] rounded-xl liked">
+                <FaHeart className="text-2xl icon" />
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
+                  Library
+                </span>
+                <h2 className="text-[1.5rem] lg:text-[1.8rem] font-semibold leading-tight">
+                  My Music
+                </h2>
+                <span className="text-xs opacity-70">
+                  Liked songs, albums & playlists at one place
+                </span>
+              </div>
+            </div>
+
+            {likedSongs.length > 0 && (
+              <button
+                onClick={openCreatePlaylist}
+                className="text-xs px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15"
+              >
+                + Create playlist
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex gap-[1.75rem] flex-col px-[1.6rem] lg:px-[3rem]">
-          {/* ---- LIKED SONGS SECTION ---- */}
+        {/* MAIN CONTENT */}
+        <div className="flex flex-col gap-[1.75rem] px-[1.6rem] lg:px-[3rem]">
+          {/* LIKED SONGS */}
           {likedSongs.length > 0 && (
             <section className="flex flex-col gap-2">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex flex-col">
                   <h3 className="text-lg lg:text-xl font-semibold">
                     Liked Songs
@@ -203,27 +267,24 @@ const MyMusic = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Sort */}
                   <select
                     value={sortMode}
                     onChange={(e) => setSortMode(e.target.value)}
-                    className="text-xs px-2 py-1 rounded-full bg-white/5 border border-white/15 outline-none cursor-pointer"
+                    className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 outline-none cursor-pointer"
                   >
                     <option value="recent">Recently added</option>
                     <option value="az">Title A–Z</option>
                     <option value="za">Title Z–A</option>
                   </select>
-
-                  {/* Play controls */}
                   <button
                     onClick={handleShuffleAll}
-                    className="text-xs px-2.5 py-1 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
+                    className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
                   >
                     Shuffle
                   </button>
                   <button
                     onClick={handlePlayAll}
-                    className="text-xs px-3 py-1 rounded-full bg-white text-black font-semibold hover:opacity-90"
+                    className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"
                   >
                     Play all
                   </button>
@@ -250,101 +311,136 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* ---- LIKED ALBUMS ---- */}
+          {/* LIKED ALBUMS – SQUARE GRID */}
           {likedAlbums.length > 0 && (
             <section className="flex flex-col gap-2">
               <h1 className="text-lg lg:text-xl font-semibold mb-1">
                 Liked Albums
               </h1>
-
-              <div className="relative flex items-center gap-3">
+              <div className="relative">
+                {/* arrows sirf desktop pe */}
                 <MdOutlineKeyboardArrowLeft
-                  className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
+                  className="arrow-btn hidden lg:block absolute left-[-0.5rem] top-1/2 -translate-y-1/2 text-3xl hover:scale-125 cursor-pointer"
                   onClick={() => scrollLeft(albumsScrollRef)}
                 />
+                <MdOutlineKeyboardArrowRight
+                  className="arrow-btn hidden lg:block absolute right-[-0.5rem] top-1/2 -translate-y-1/2 text-3xl hover:scale-125 cursor-pointer"
+                  onClick={() => scrollRight(albumsScrollRef)}
+                />
+
                 <div
-                  className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-2 overflow-x-auto scroll-hide w-max px-6 lg:px-8 scroll-smooth"
                   ref={albumsScrollRef}
+                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4"
                 >
                   {likedAlbums.map((album) => (
                     <div
                       key={album.id}
-                      className="aspect-square max-w-[11rem] min-w-[9rem]"
+                      className="w-full aspect-square overflow-hidden"
                     >
                       <AlbumItems {...album} />
                     </div>
                   ))}
                 </div>
-                <MdOutlineKeyboardArrowRight
-                  className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                  onClick={() => scrollRight(albumsScrollRef)}
-                />
               </div>
             </section>
           )}
 
-          {/* ---- LIKED PLAYLISTS (Saavn playlists) ---- */}
+          {/* LIKED PLAYLISTS – GRID */}
           {likedPlaylists.length > 0 && (
             <section className="flex flex-col gap-2">
               <h1 className="text-lg lg:text-xl font-semibold mb-1">
                 Liked Playlists
               </h1>
-
-              <div className="relative flex items-center gap-3">
-                <MdOutlineKeyboardArrowLeft
-                  className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block"
-                  onClick={() => scrollLeft(playlistsScrollRef)}
-                />
-
-                <div
-                  className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-[0.66rem] overflow-x-auto scroll-hide w-max px-6 lg:px-8 scroll-smooth"
-                  ref={playlistsScrollRef}
-                >
-                  {likedPlaylists.map((playlist) => (
-                    <PlaylistItems key={playlist.id} {...playlist} />
-                  ))}
-                </div>
-
-                <MdOutlineKeyboardArrowRight
-                  className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem] hidden lg:block "
-                  onClick={() => scrollRight(playlistsScrollRef)}
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
+                {likedPlaylists.map((playlist) => (
+                  <div key={playlist.id} className="w-full">
+                    <PlaylistItems {...playlist} />
+                  </div>
+                ))}
               </div>
             </section>
           )}
 
-          {/* ---- CUSTOM PLAYLISTS (LOCAL) ---- */}
+          {/* CUSTOM PLAYLISTS */}
           {customPlaylists.length > 0 && (
             <section className="flex flex-col gap-2">
-              <h1 className="text-lg lg:text-xl font-semibold mb-1">
-                My Playlists
-              </h1>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                {customPlaylists.map((pl) => (
-                  <div
-                    key={pl.id}
-                    className="card p-3 rounded-xl border border-white/10 hover:border-white/25 transition cursor-pointer flex justify-between items-center"
-                    onClick={() => openPlaylist(pl)}
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold">{pl.name}</span>
-                      <span className="text-[0.7rem] opacity-70">
-                        {pl.songIds.length} song
-                        {pl.songIds.length > 1 ? "s" : ""} • Custom playlist
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePlaylist(pl.id);
-                      }}
-                      className="text-[0.7rem] px-2 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/15"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowCustomPlaylists((prev) => !prev)
+                  }
+                  className="flex items-center gap-1 text-sm lg:text-base font-semibold"
+                >
+                  <span>My Playlists</span>
+                  <MdOutlineKeyboardArrowRight
+                    className={`transition-transform ${
+                      showCustomPlaylists ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+                <span className="text-xs opacity-70">
+                  {customPlaylists.length} playlist
+                  {customPlaylists.length > 1 ? "s" : ""}
+                </span>
               </div>
+
+              {showCustomPlaylists && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {customPlaylists.map((pl) => (
+                    <div
+                      key={pl.id}
+                      className="rounded-2xl bg-white/5 border border-white/10 p-3 flex gap-3 hover:bg-white/8 cursor-pointer"
+                    >
+                      <div
+                        className="h-[60px] w-[60px] rounded-xl overflow-hidden flex-shrink-0"
+                        onClick={() => openPlaylist(pl)}
+                      >
+                        <img
+                          src={getPlaylistCover(pl)}
+                          alt={pl.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-col justify-between flex-1">
+                        <div
+                          className="flex flex-col"
+                          onClick={() => openPlaylist(pl)}
+                        >
+                          <span className="text-sm font-semibold truncate">
+                            {pl.name}
+                          </span>
+                          <span className="text-[0.7rem] opacity-70">
+                            {pl.songIds.length} song
+                            {pl.songIds.length > 1 ? "s" : ""} • Custom
+                            playlist
+                          </span>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => playPlaylist(pl)}
+                            className="text-[0.7rem] px-2.5 py-1 rounded-full bg-white text-black font-semibold hover:opacity-90"
+                          >
+                            Play
+                          </button>
+                          <button
+                            onClick={() => openPlaylist(pl)}
+                            className="text-[0.7rem] px-2.5 py-1 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePlaylist(pl.id)}
+                            className="text-[0.7rem] px-2.5 py-1 rounded-full bg-white/5 border border-white/20 hover:bg-white/10"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -358,55 +454,213 @@ const MyMusic = () => {
         </div>
       </div>
 
-      {/* PLAYLIST MODAL */}
-      {activePlaylist && (
+      {/* CREATE PLAYLIST MODAL */}
+      {isCreateModalOpen && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[#09090B] w-[95%] max-w-[550px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex flex-col">
                 <span className="text-xs opacity-70 uppercase tracking-[0.16em]">
-                  Custom playlist
+                  New playlist
                 </span>
-                <h2 className="text-lg font-semibold">{activePlaylist.name}</h2>
-                <span className="text-xs opacity-70">
-                  {activePlaylistSongs.length} song
-                  {activePlaylistSongs.length > 1 ? "s" : ""}
-                </span>
+                <h2 className="text-lg font-semibold">Create playlist</h2>
+              </div>
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-xs px-3 py-1 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+              >
+                Close
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Playlist name"
+              value={newPlaylistName}
+              onChange={(e) => setNewPlaylistName(e.target.value)}
+              className="w-full text-sm px-3 py-2 rounded-lg bg-white/5 border border-white/15 outline-none"
+            />
+
+            <span className="text-[0.7rem] opacity-70 mt-1">
+              Choose songs from your liked songs
+            </span>
+
+            <div className="overflow-y-auto max-h-[50vh] pr-1">
+              {likedSongs.map((song) => (
+                <label
+                  key={song.id}
+                  className="flex items-center gap-3 py-1.5 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedSongIds.includes(song.id)}
+                    onChange={() => toggleSelectSong(song.id)}
+                    className="accent-white"
+                  />
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={song.image}
+                      alt={song.name}
+                      className="h-9 w-9 rounded-md object-cover"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold truncate">
+                        {song.name}
+                      </span>
+                      <span className="text-[0.7rem] opacity-70 truncate">
+                        {(song.artists?.primary || [])
+                          .map((a) => a.name)
+                          .join(", ")}
+                      </span>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreatePlaylistSave}
+                className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ACTIVE PLAYLIST EDIT MODAL */}
+      {activePlaylist && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#09090B] w-[95%] max-w-[600px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3">
+                <div className="h-[52px] w-[52px] rounded-lg overflow-hidden">
+                  <img
+                    src={getPlaylistCover(activePlaylist)}
+                    alt={activePlaylist.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs opacity-70 uppercase tracking-[0.16em]">
+                    Custom playlist
+                  </span>
+                  <h2 className="text-lg font-semibold">
+                    {activePlaylist.name}
+                  </h2>
+                  <span className="text-xs opacity-70">
+                    {activePlaylistSongs.length} song
+                    {activePlaylistSongs.length > 1 ? "s" : ""} in this playlist
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => playPlaylist(activePlaylist)}
-                  className="text-xs px-3 py-1 rounded-full bg-white text-black font-semibold hover:opacity-90"
+                  className="text-xs px-3 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"
                 >
                   Play
                 </button>
                 <button
                   onClick={() => setActivePlaylist(null)}
-                  className="text-xs px-3 py-1 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+                  className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
                 >
                   Close
                 </button>
               </div>
             </div>
 
-            <div className="overflow-y-auto pr-1">
-              {activePlaylistSongs.length === 0 && (
-                <div className="text-xs opacity-70">
-                  No songs found (maybe removed from liked songs).
-                </div>
-              )}
-              {activePlaylistSongs.map((song, index) => (
-                <SongsList
-                  key={song.id || index}
-                  id={song.id}
-                  image={song.image}
-                  artists={song.artists}
-                  name={song.name}
-                  duration={song.duration}
-                  downloadUrl={song.audio}
-                  song={activePlaylistSongs}
-                />
-              ))}
+            <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[55vh]">
+              {/* songs in playlist */}
+              <div>
+                <h3 className="text-sm font-semibold mb-1">
+                  Songs in this playlist
+                </h3>
+                {activePlaylistSongs.length === 0 && (
+                  <div className="text-[0.75rem] opacity-70">
+                    No songs yet. Add from liked songs below.
+                  </div>
+                )}
+                {activePlaylistSongs.map((song) => (
+                  <div
+                    key={song.id}
+                    className="flex items-center justify-between py-1.5"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <img
+                        src={song.image}
+                        alt={song.name}
+                        className="h-8 w-8 rounded-md object-cover"
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-semibold truncate">
+                          {song.name}
+                        </span>
+                        <span className="text-[0.7rem] opacity-70 truncate">
+                          {(song.artists?.primary || [])
+                            .map((a) => a.name)
+                            .join(", ")}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveSongFromPlaylist(song.id)}
+                      className="text-[0.7rem] px-2 py-1 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 ml-2"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* add more from liked songs */}
+              <div>
+                <h3 className="text-sm font-semibold mb-1">
+                  Add from liked songs
+                </h3>
+                {likedSongs
+                  .filter(
+                    (s) => !activePlaylist.songIds.includes(s.id)
+                  )
+                  .map((song) => (
+                    <div
+                      key={song.id}
+                      className="flex items-center justify-between py-1.5"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <img
+                          src={song.image}
+                          alt={song.name}
+                          className="h-8 w-8 rounded-md object-cover"
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-semibold truncate">
+                            {song.name}
+                          </span>
+                          <span className="text-[0.7rem] opacity-70 truncate">
+                            {(song.artists?.primary || [])
+                              .map((a) => a.name)
+                              .join(", ")}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleAddSongToPlaylist(song.id)}
+                        className="text-[0.7rem] px-2 py-1 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 ml-2"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
         </div>

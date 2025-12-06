@@ -147,6 +147,17 @@ export const fetchArtistByID = async (ID) => {
 };
 
 
+export const fetchNewReleases = async () => {
+  const res = await fetch(
+    "https://www.jiosaavn.com/api.php?__call=content.getAlbums&sort_order=desc&page=1&n=50&_format=json&_marker=0"
+  );
+  let text = await res.text();
+  text = text.replace(/^\w+\(/, "").replace(/\);?$/, "");
+  return JSON.parse(text);
+};
+
+
+
 export const searchPlayListByQuery = async (query) => { 
     try{
         const playlists = await fetch(`${api_url}search/playlists?query=${query}&limit=20`);

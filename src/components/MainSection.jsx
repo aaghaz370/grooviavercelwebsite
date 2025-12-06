@@ -27,6 +27,8 @@ const MainSection = () => {
   const [albums, setAlbums] = useState([]);
   const [artists, setArtists] = useState([]);
   const [playlists, setPlaylists] = useState([]);
+  const [nowTrending, setNowTrending] = useState([]);
+
 
   // ❤️ Most Streamed Love Songs – Hindi
   const [loveSongs, setLoveSongs] = useState([]);
@@ -34,12 +36,14 @@ const MainSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [list, setList] = useState([]);
+  
 
   // Scroll refs
   const recentScrollRef = useRef(null);
   const latestSongsScrollRef = useRef(null);
   const trendingScrollRef = useRef(null);
   const loveScrollRef = useRef(null);
+  const nowTrendingScrollRef = useRef(null);
 
   // Recently Played from localStorage
   const getRecentlyPlayedSongs = () => {
@@ -133,6 +137,38 @@ const MainSection = () => {
 
     fetchLoveSongs();
   }, []);
+
+
+  useEffect(() => {
+  const fetchNowTrending = async () => {
+    try {
+      // 1) Search playlist by name
+      const res = await searchPlayListByQuery("Now Trending");
+      const results = res?.data?.results || [];
+      if (!results.length) return;
+
+      // 2) Find correct playlist
+      const match =
+        results.find(
+          (p) =>
+            p.perma_url?.includes("now-trending") ||
+            p.url?.includes("now-trending") ||
+            p.name?.toLowerCase().includes("now trending")
+        ) || results[0];
+
+      // 3) Full playlist fetch using numeric ID
+      const playlist = await fetchplaylistsByID(match.id);
+      const songs = playlist?.data?.songs || [];
+
+      // 4) Sirf 24 songs
+      setNowTrending(songs.slice(0, 24));
+    } catch (e) {
+      console.error("Now Trending section error:", e);
+    }
+  };
+
+  fetchNowTrending();
+}, []);
 
   // ---------- COMBINED LIST PLAYER KE LIYE ----------
   useEffect(() => {
@@ -329,5 +365,42 @@ const MainSection = () => {
     </div>
   );
 };
+
+{/* ===================== TRENDING ON SOCIALS ===================== */}
+{nowTrending.length > 0 && (
+  <div className="flex flex-col w-full">
+    <h2 className="m-4 mt-2 text-xl lg:text-2xl font-semibold w-full lg:ml-[3.5rem] ml-[1rem]">
+      Trending on Socials
+    </h2>
+
+    <div className="flex justify-center items-center gap-2 w-full">
+      <MdOutlineKeyboardArrowLeft
+        className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
+        onClick={() => scrollLeft(nowTrendingScrollRef)}
+      />
+
+      <div className="w-full overflow-hidden pl-2 lg:pl-0">
+        <div
+          className="grid gap-2 lg:gap-3 overflow-x-auto scroll-hide scroll-smooth pr-2"
+          ref={nowTrendingScrollRef}
+          style={{
+            gridTemplateRows: "repeat(4, 1fr)",
+            gridAutoFlow: "column",
+            gridAutoColumns: "85%",
+          }}
+        >
+          {nowTrending.map((song) => (
+            <TrendingCard key={song.id} {...song} song={list} />
+          ))}
+        </div>
+      </div>
+
+      <MdOutlineKeyboardArrowRight
+        className="text-3xl hover:scale-125 cursor-pointer arrow-btn hidden lg:block"
+        onClick={() => scrollRight(nowTrendingScrollRef)}
+      />
+    </div>
+  </div>
+)}
 
 export default MainSection;

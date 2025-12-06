@@ -12,7 +12,6 @@ import {
 } from "react-icons/md";
 
 import PlaylistItems from "../components/Items/PlaylistItems";
-import AlbumItems from "../components/Items/AlbumItems";
 import { Link } from "react-router";
 
 const MyMusic = () => {
@@ -43,7 +42,6 @@ const MyMusic = () => {
     const storedCustom =
       JSON.parse(localStorage.getItem("customPlaylists")) || [];
 
-    // migrate old custom playlists (jisme sirf songIds the)
     const migratedCustom = (storedCustom || []).map((pl) => {
       if (pl.songs && Array.isArray(pl.songs)) return pl;
 
@@ -89,20 +87,19 @@ const MyMusic = () => {
     } else if (sortMode === "za") {
       arr.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
     }
-    // "recent" me order same hi rakha
-    return arr;
+    return arr; // recent = original order
   };
 
   const sortedLikedSongs = getSortedSongs();
 
   const handlePlayAll = () => {
     if (!sortedLikedSongs.length) return;
-    // yahan se direct queue play kara sakte ho agar chahe
+    // yahan se queue logic add kar sakte ho
   };
 
   const handleShuffleAll = () => {
     if (!sortedLikedSongs.length) return;
-    // shuffle logic baad me add kar sakte ho
+    // shuffle logic baad mein
   };
 
   // ---- Create playlist ----
@@ -123,10 +120,9 @@ const MyMusic = () => {
     const name = newPlaylistName.trim();
     if (!name || selectedSongIds.length === 0) return;
 
-    // full song objects store kar rahe hain, sirf IDs nahi
     const songs = likedSongs
       .filter((s) => selectedSongIds.includes(s.id))
-      .map((s) => ({ ...s })); // copy, taaki liked se unlink rahe
+      .map((s) => ({ ...s }));
 
     const newPlaylist = {
       id: Date.now(),
@@ -162,7 +158,8 @@ const MyMusic = () => {
     <>
       <Navbar />
 
-      <div className="flex flex-col mb-[12rem] gap-[1.75rem]">
+      {/* min-h-screen => niche black patch nahi aayega */}
+      <div className="flex flex-col min-h-screen mb-[12rem] gap-[1.75rem]">
         {/* HEADER CARD */}
         <div className="mt-[8.5rem] lg:mt-[6rem] px-[1.6rem] lg:px-[3rem]">
           <div className="card flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
@@ -235,7 +232,8 @@ const MyMusic = () => {
                 </div>
               </div>
 
-              <div className="flex flex-wrap">
+              {/* yaha gap-y-2 se songs ke beech halka gap */}
+              <div className="flex flex-wrap gap-y-2">
                 {sortedLikedSongs.map(
                   (song, index) =>
                     song && (
@@ -255,7 +253,7 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED ALBUMS – fixed width + fixed height cards */}
+          {/* LIKED ALBUMS – Top Albums jaisa card, fixed size + sirf top 3 tracks */}
           {likedAlbums.length > 0 && (
             <section className="flex flex-col gap-2">
               <h1 className="text-lg lg:text-xl font-semibold mb-1">
@@ -272,16 +270,98 @@ const MyMusic = () => {
                   className="flex overflow-x-auto scroll-hide px-3 lg:px-0 scroll-smooth gap-3 lg:gap-4"
                   ref={albumsScrollRef}
                 >
-                  {likedAlbums.map((album) => (
-                    <div
-                      key={album.id}
-                      className="flex-none w-[16rem] max-w-[16rem] h-[14rem]"
-                    >
-                      <div className="h-full">
-                        <AlbumItems {...album} />
+                  {likedAlbums.map((album) => {
+                    const tracks = Array.isArray(album.songs)
+                      ? album.songs.slice(0, 3)
+                      : [];
+
+                    const albumTitle =
+                      album.name ||
+                      album.title ||
+                      album.album ||
+                      "Unknown Album";
+
+                    const albumArtist =
+                      album.primaryArtists ||
+                      album.artist ||
+                      album.subtitle ||
+                      "";
+
+                    const songsCount =
+                      album.songCount ||
+                      (Array.isArray(album.songs) ? album.songs.length : 0);
+
+                    const cover =
+                      album.image || album.thumbnail || "/Unknown.png";
+
+                    return (
+                      <div
+                        key={album.id}
+                        className="flex-none w-[16rem] max-w-[16rem]"
+                      >
+                        <Link to={`/albums/${album.id}`}>
+                          <div className="relative h-[14rem] rounded-[1.5rem] bg-gradient-to-br from-white/10 to-white/5 shadow-lg overflow-hidden p-3 flex flex-col">
+                            {/* Top: cover + album info */}
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={cover}
+                                alt={albumTitle}
+                                className="h-14 w-14 rounded-lg object-cover shadow-md"
+                              />
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="text-sm font-semibold truncate">
+                                  {albumTitle}
+                                </span>
+                                {albumArtist && (
+                                  <span className="text-xs opacity-80 truncate">
+                                    {albumArtist}
+                                  </span>
+                                )}
+                                {songsCount > 0 && (
+                                  <span className="text-[0.7rem] opacity-60">
+                                    {songsCount} song
+                                    {songsCount > 1 ? "s" : ""}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Bottom: top 3 tracks only */}
+                            {tracks.length > 0 && (
+                              <div className="mt-3 bg-black/15 rounded-2xl px-3 py-2 flex-1 overflow-hidden">
+                                <div className="space-y-1.5">
+                                  {tracks.map((t) => {
+                                    const trackName = t.name || t.title;
+                                    const trackArtist =
+                                      (t.artists?.primary || [])
+                                        .map((a) => a.name)
+                                        .join(", ") ||
+                                      t.subtitle ||
+                                      "";
+                                    return (
+                                      <div
+                                        key={t.id}
+                                        className="text-xs flex flex-col truncate"
+                                      >
+                                        <span className="font-medium truncate">
+                                          {trackName}
+                                        </span>
+                                        {trackArtist && (
+                                          <span className="opacity-70 truncate">
+                                            {trackArtist}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </Link>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <MdOutlineKeyboardArrowRight

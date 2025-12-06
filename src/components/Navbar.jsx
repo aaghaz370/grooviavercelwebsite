@@ -23,7 +23,7 @@ const Navbar = () => {
       {/* RIGHT: Desktop nav (hidden on mobile) */}
       <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
         <Link
-          to="/search"
+          to="/Browse"
           className={`transition-colors ${
             isActive("/search")
               ? "text-white"
@@ -34,7 +34,7 @@ const Navbar = () => {
         </Link>
 
         <Link
-          to="/myMusic"
+          to="/Music"
           className={`transition-colors ${
             isActive("/myMusic")
               ? "text-white"

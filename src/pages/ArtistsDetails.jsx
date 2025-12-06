@@ -7,9 +7,8 @@ import Footer from "../components/footer";
 import SongsList from "../components/SongsList";
 import AlbumSlider from "../components/Sliders/AlbumSlider";
 import SongGrid from "../components/SongGrid";
-import { fetchArtistByID } from "../../fetch";
+import { fetchArtistByID, fetchAlbumByID } from "../../fetch";
 import MusicContext from "../context/MusicContext";
-import he from "he";
 
 import {
   MdOutlineKeyboardArrowLeft,
@@ -47,24 +46,20 @@ const ArtistsDetails = () => {
         setLoading(true);
         const data = await fetchArtistByID(id);
 
-        // API se jo bhi shape aaye, usko normalise kar rahe hain
         const raw = data?.data;
         const artist = Array.isArray(raw) ? raw[0] : raw;
 
         setArtistData(artist || null);
 
-        // Top songs
         const ts = artist?.topSongs || [];
         setTopSongs(ts);
 
-        // Top albums
         const ta =
-          artist?.topAlbums?.albums || // agar nested ho
+          artist?.topAlbums?.albums ||
           artist?.topAlbums ||
           [];
         setTopAlbums(ta);
 
-        // Singles (songs style cards)
         const sg = artist?.singles || [];
         setSingles(sg);
       } catch (err) {
@@ -97,33 +92,44 @@ const ArtistsDetails = () => {
   const imageUrl =
     artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
 
-  // 🔥 Singles ko proper song objects me convert karna
-  const singlesAsSongs = singles
-    .map((single) => {
-      // Agar already song object hai (direct downloadUrl/audio hai)
-      if (single.downloadUrl || single.audio) return single;
+  // 👉 Single card pe tap -> album fetch -> first song play
+  const handleSingleClick = async (single) => {
+    try {
+      const albumId = single.id;
+      if (!albumId) return;
 
-      // Agar single ke andar songs[] hai to first track use karo
-      const track = single.songs?.[0];
-      if (!track) return null;
+      const albumRes = await fetchAlbumByID(albumId);
+      const albumData = albumRes?.data;
+      const firstSong = albumData?.songs?.[0];
 
-      return {
-        ...track,
-        id: track.id || single.id,
-        name: single.name || track.name,
-        image: track.image || single.image,
-        artists: track.artists || single.artists,
-      };
-    })
-    .filter(Boolean);
+      if (!firstSong) return;
+
+      const audioSource = firstSong.downloadUrl
+        ? firstSong.downloadUrl[4]?.url || firstSong.downloadUrl
+        : firstSong.audio;
+
+      const { name, duration, image, id, artists } = firstSong;
+
+      playMusic(
+        audioSource,
+        name,
+        duration,
+        image,
+        id,
+        artists,
+        albumData.songs
+      );
+    } catch (e) {
+      console.error("Error playing single", e);
+    }
+  };
 
   return (
     <>
       <Navbar />
 
-      {/* Pure page scrollable, andar ka koi section alag se scroll nahi karega */}
       <main className="pt-[9rem] lg:pt-[6.5rem] pb-[6rem] lg:pb-[4.5rem] px-4 lg:px-16 flex flex-col gap-8">
-        {/* HERO SECTION */}
+        {/* HERO */}
         <section className="flex flex-col lg:flex-row items-center lg:items-end gap-6">
           <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden shadow-xl">
             <img
@@ -157,7 +163,7 @@ const ArtistsDetails = () => {
           </div>
         </section>
 
-        {/* TOP SONGS – NORMAL LIST, KOI INNER SCROLL NAHI */}
+        {/* TOP SONGS */}
         {topSongs.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Top Songs</h2>
@@ -169,7 +175,7 @@ const ArtistsDetails = () => {
           </section>
         )}
 
-        {/* TOP ALBUMS – HOME PAGE WALA SLIDER STYLE */}
+        {/* TOP ALBUMS */}
         {topAlbums.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Top Albums</h2>
@@ -177,8 +183,8 @@ const ArtistsDetails = () => {
           </section>
         )}
 
-        {/* SINGLES – NEW SONGS WALA CARD STYLE */}
-        {singlesAsSongs.length > 0 && (
+        {/* SINGLES – SAME CARD STYLE, AB TAP PE PLAY HOGA */}
+        {singles.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Singles</h2>
 
@@ -192,12 +198,27 @@ const ArtistsDetails = () => {
                 ref={singlesScrollRef}
                 className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-3 w-full overflow-x-auto scroll-smooth scroll-hide px-1 lg:px-0"
               >
-                {singlesAsSongs.map((single) => (
-                  <SongGrid
+                {singles.map((single) => (
+                  <div
                     key={single.id}
-                    {...single}
-                    song={singlesAsSongs}
-                  />
+                    onClick={() => handleSingleClick(single)}
+                    className="cursor-pointer"
+                  >
+                    <SongGrid
+                      {...single}
+                      song={singles}
+                      // title / subtitle etc handle for card
+                      downloadUrl={
+                        single.downloadUrl ||
+                        single.songs?.[0]?.downloadUrl ||
+                        single.perma_url
+                      }
+                      image={single.image || single.songs?.[0]?.image}
+                      artists={single.artists || single.songs?.[0]?.artists}
+                      duration={single.duration || single.songs?.[0]?.duration}
+                      name={single.name || single.title}
+                    />
+                  </div>
                 ))}
               </div>
 

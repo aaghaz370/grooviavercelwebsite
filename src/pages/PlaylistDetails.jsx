@@ -1,8 +1,10 @@
-import { useContext, useEffect, useState } from "react";
+okimport { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
-import { fetchplaylistsByID } from "../../fetch";
+import { fetchplaylistsByID, searchPlayListByQuery } from "../../fetch";
+import PlaylistSlider from "../components/Sliders/PlaylistSlider";
+import ArtistSlider from "../components/Sliders/ArtistSlider";
 import Footer from "../components/footer";
 import MusicContext from "../context/MusicContext";
 import SongsList from "../components/SongsList";
@@ -20,6 +22,11 @@ const PlaylistDetails = () => {
   const [likedPlaylists, setLikedPlaylists] = useState(() => {
     return JSON.parse(localStorage.getItem("likedPlaylists")) || [];
   });
+
+  const [similarPlaylists, setSimilarPlaylists] = useState([]);
+  const [trendingPlaylists, setTrendingPlaylists] = useState([]);
+  const [playlistArtists, setPlaylistArtists] = useState([]);
+  const [extraLoading, setExtraLoading] = useState(true);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -190,13 +197,109 @@ const PlaylistDetails = () => {
             )}
           </div>
         </div>
-      </div>
+      
 
+
+      {/* Similar Playlists */}
+        {similarPlaylists.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-2xl font-semibold mb-3 ml-2">
+              Similar Playlists
+            </h2>
+            <PlaylistSlider playlists={similarPlaylists} />
+          </div>
+        )}
+
+        {/* Trending Playlists */}
+        {trendingPlaylists.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-2xl font-semibold mb-3 ml-2">
+              Trending Playlists
+            </h2>
+            <PlaylistSlider playlists={trendingPlaylists} />
+          </div>
+        )}
+
+        {/* Artists from this Playlist */}
+        {playlistArtists.length > 0 && (
+          <div className="mt-6 mb-4">
+            <h2 className="text-2xl font-semibold mb-3 ml-2">
+              Artists in this Playlist
+            </h2>
+            <ArtistSlider artists={playlistArtists} />
+          </div>
+        )}
+
+        </div>
       <Player />
       <Navigator />
       <Footer />
     </>
   );
 };
+
+// 👉 Playlist ke andar jo artists hain unka unique list
+  useEffect(() => {
+    const playlistData = details.data;
+    if (!playlistData) return;
+
+    const songArtists =
+      playlistData.songs?.flatMap((s) => s.artists?.primary || []) || [];
+
+    const topArtists = playlistData.artists || [];
+
+    const all = [...songArtists, ...topArtists];
+
+    const unique = all.filter(
+      (a, i, self) => a.id && i === self.findIndex((t) => t.id === a.id)
+    );
+
+    setPlaylistArtists(unique);
+  }, [details]);
+
+// 👉 Similar & Trending playlists
+  useEffect(() => {
+    const playlistData = details.data;
+    if (!playlistData) return;
+
+    const fetchExtra = async () => {
+      try {
+        // primary / top artist ka naam ya playlist name ka first part
+        const primaryArtistName =
+          playlistData.artists?.[0]?.name ||
+          playlistData.songs?.[0]?.artists?.primary?.[0]?.name ||
+          null;
+
+        const baseQuery =
+          primaryArtistName ||
+          playlistData.name?.split("-")[0].trim() ||
+          playlistData.name;
+
+        const lang = playlistData.language || "hindi";
+
+        const [similarRes, trendingRes] = await Promise.all([
+          searchPlayListByQuery(baseQuery),
+          searchPlayListByQuery("Top " + lang),
+        ]);
+
+        const allSimilar = similarRes?.data?.results || [];
+        const filteredSimilar = allSimilar
+          .filter((p) => p.id !== playlistData.id)
+          .slice(0, 10);
+
+        const trending = (trendingRes?.data?.results || []).slice(0, 10);
+
+        setSimilarPlaylists(filteredSimilar);
+        setTrendingPlaylists(trending);
+      } catch (e) {
+        console.error("extra playlist fetch error", e);
+      } finally {
+        setExtraLoading(false);
+      }
+    };
+
+    fetchExtra();
+  }, [details]);
+
 
 export default PlaylistDetails;

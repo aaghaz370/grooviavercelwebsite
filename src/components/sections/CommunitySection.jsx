@@ -59,18 +59,19 @@ const CommunitySection = () => {
 
         <div className="w-full overflow-hidden pl-2 lg:pl-0">
           <div
-            ref={scrollRef}
-            className="
-              grid
-              grid-rows-1
-              grid-flow-col
-              gap-3 lg:gap-4
-              overflow-x-auto
-              scroll-hide
-              scroll-smooth
-              pr-3
-            "
-          >
+  ref={scrollRef}
+  className="
+    grid
+    grid-rows-1
+    grid-flow-col
+    gap-3 lg:gap-4
+    overflow-x-auto
+    overflow-y-hidden    /* 👈 yaha naya */
+    scroll-hide
+    scroll-smooth
+    pr-3
+  "
+>
             {communityPlaylists.map((cfg) => (
               <CommunityPlaylistCard
                 key={cfg.id}

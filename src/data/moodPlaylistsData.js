@@ -68,6 +68,7 @@ export const moodPlaylists = [
     ],
   },
 
+  {
     id: "156710699",
     name: "Bollywood Rock - Workout Mix",
     description: "Have A Rocking Workout Session",

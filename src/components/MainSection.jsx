@@ -209,9 +209,9 @@ const MainSection = () => {
   if (loading) {
     return (
       <div className="pt-[3rem] lg:pt-5 mt-[5rem] flex flex-col items-center gap-4 px-4">
-        <div className="hidden lg:block text-2xl w-full max-w-5xl font-semibold mb-2">
-          {getGreeting()}
-        </div>
+        <div className="text-xl lg:text-2xl w-full font-semibold ml-[1rem] lg:ml-[5.5rem] m-1">
+  {getGreeting()}
+</div>
         {/* chota skeleton, taaki blank black na lage */}
         <div className="w-full max-w-5xl space-y-4 animate-pulse">
           <div className="h-5 w-32 rounded-full bg-white/10" />

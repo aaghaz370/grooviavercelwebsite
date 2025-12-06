@@ -271,30 +271,15 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED ALBUMS – Top Albums style, fixed size + max 3 tracks + clickable */}
+          {/* LIKED ALBUMS – same style as Liked Playlists cards */}
 {likedAlbums.length > 0 && (
   <section className="flex flex-col gap-2">
     <h1 className="text-lg lg:text-xl font-semibold mb-1">
       Liked Albums
     </h1>
 
-    <div
-      ref={albumsScrollRef}
-      className="flex overflow-x-auto scroll-hide gap-4 pb-1"
-    >
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
       {likedAlbums.map((album) => {
-        // API se aaya to albumTrackMap, warna album.songs
-        const allSongsFromApi = albumTrackMap[album.id] || [];
-        const allSongs = allSongsFromApi.length
-          ? allSongsFromApi
-          : Array.isArray(album.songs)
-          ? album.songs
-          : [];
-
-        const sampleTracks = Array.isArray(allSongs)
-          ? allSongs.slice(0, 3)
-          : [];
-
         const title =
           album.name || album.title || album.album || "Unknown Album";
 
@@ -304,76 +289,33 @@ const MyMusic = () => {
           album.subtitle ||
           "";
 
-        const songsCount =
-          album.songCount ||
-          (Array.isArray(allSongs) ? allSongs.length : 0);
-
         const cover = album.image || album.thumbnail || "/Unknown.png";
 
         return (
-          <div
-            key={album.id}
-            className="flex-none w-[82vw] max-w-[21rem] h-[15.5rem]"
-          >
-            <Link to={`/albums/${album.id}`}>
-              <div className="h-full w-full rounded-[1.75rem] bg-gradient-to-br from-white/12 via-white/5 to-white/5 shadow-lg overflow-hidden p-4 flex flex-col">
-                {/* Top: cover + info */}
-                <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src={cover}
-                    alt={title}
-                    className="h-14 w-14 rounded-xl object-cover shadow-md"
-                  />
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="text-sm font-semibold truncate">
-                      {title}
-                    </span>
-                    {artist && (
-                      <span className="text-xs opacity-80 truncate">
-                        {artist}
-                      </span>
-                    )}
-                    {songsCount > 0 && (
-                      <span className="text-[0.7rem] opacity-60">
-                        {songsCount} song
-                        {songsCount > 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
-                </div>
+          <Link key={album.id} to={`/albums/${album.id}`}>
+            <div className="w-full group cursor-pointer">
+              {/* square image – same feel as playlist card */}
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5">
+                <img
+                  src={cover}
+                  alt={title}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              </div>
 
-                {/* Bottom: max 3 tracks */}
-                {sampleTracks.length > 0 && (
-                  <div className="mt-auto bg-black/15 rounded-2xl px-3 py-2 overflow-hidden">
-                    <div className="space-y-1.5">
-                      {sampleTracks.map((t) => {
-                        const tName = t.name || t.title || "";
-                        const tArtist =
-                          (t.artists?.primary || [])
-                            .map((a) => a.name)
-                            .join(", ") || t.subtitle || "";
-                        return (
-                          <div
-                            key={t.id || tName}
-                            className="text-xs flex flex-col truncate"
-                          >
-                            <span className="font-medium truncate">
-                              {tName}
-                            </span>
-                            {tArtist && (
-                              <span className="opacity-70 truncate">
-                                {tArtist}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+              {/* text info */}
+              <div className="mt-1.5 flex flex-col">
+                <span className="text-sm font-semibold truncate">
+                  {title}
+                </span>
+                {artist && (
+                  <span className="text-xs opacity-70 truncate">
+                    {artist}
+                  </span>
                 )}
               </div>
-            </Link>
-          </div>
+            </div>
+          </Link>
         );
       })}
     </div>

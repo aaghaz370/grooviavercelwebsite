@@ -173,7 +173,7 @@ const AlbumDetail = () => {
     <>
       <Navbar />
 
-      <div className="flex flex-col gap-[2rem] lg:gap-[2rem] pt-[10rem] lg:pt-[6rem]">
+      <div className="flex flex-col gap-[2rem] lg:gap-[2rem] pt-[10rem] lg:pt-[6rem] overflow-x-hidden">
         {/* Album header */}
         <div className="flex items-center pl-[2rem]">
           <img

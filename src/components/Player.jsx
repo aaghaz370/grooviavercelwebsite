@@ -47,8 +47,34 @@ const Player = () => {
     return JSON.parse(localStorage.getItem("likedSongs")) || [];
   });
 
-  // Full-screen (browser) state
-  const [isFullScreen, setIsFullScreen] = useState(false);
+  // --- fullscreen state (shared with footer via document.fullscreenElement) ---
+  const [isFullscreen, setIsFullscreen] = useState(() => {
+    if (typeof document === "undefined") return false;
+    return !!document.fullscreenElement;
+  });
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      const active = !!document.fullscreenElement;
+      setIsFullscreen(active);
+      // body class se footer ko hide/show kar sakte ho
+      document.body.classList.toggle("fullscreen-active", active);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error("Fullscreen error", err);
+    }
+  };
 
   const inputRef = useRef();
 
@@ -527,35 +553,7 @@ const Player = () => {
             </>
           )}
 
-          {/* MAXIMIZED VIEW */}
-          {isMaximized && currentSong && (
-            <>
-              {/* Fullscreen pill – mobile only */}
-              <button
-                onClick={toggleFullScreen}
-                className="lg:hidden fixed bottom-[4.5rem] left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-black/40 text-[0.75rem] flex items-center gap-2 backdrop-blur-sm border border-white/10"
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    isFullScreen ? "bg-red-400" : "bg-green-400"
-                  }`}
-                />
-                {isFullScreen ? "Exit full screen" : "Full screen"}
-              </button>
-
-              <div
-                className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth"
-                ref={swipeAreaRef}
-                onTouchStart={handleSwipeStart}
-                onTouchMove={handleSwipeMove}
-                onTouchEnd={handleSwipeEnd}
-              >
-                <div className=" flex w-[97%] justify-end ">
-                  <IoIosClose
-                    className="  icon text-[3rem] cursor-pointer"
-                    onClick={handleMaximized}
-                  />
-                </div>
+          
                 <div className=" ">
                   <div
                     className="flex lg:flex-row flex-col transform-gpu transition-transform duration-200"
@@ -790,6 +788,22 @@ const Player = () => {
                         </div>
                       )}
                     </div>
+                    {/* MAX PLAYER BOTTOM – logo + fullscreen button */}
+                    <div className="flex flex-col items-center justify-center mt-6 mb-4 gap-2">
+                      <div className="flex items-center gap-1">
+                        <span className="bg"></span>
+                        <span className="Musi font-extrabold text-xl">
+                          Groo
+                        </span>
+                        <span className="fy font-extrabold text-xl">via</span>
+                      </div>
+                      <p className="text-xs">Made with ❤️ by Rolex Sir.</p>
+                      <button
+                        onClick={toggleFullscreen}
+                        className="mt-1 px-4 py-1.5 text-xs rounded-full border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm flex items-center gap-2"
+                      >
+                        {isFullscreen ? "Exit full screen" : "Go full screen"}
+                      </button>
                   </div>
                 </div>
               </div>

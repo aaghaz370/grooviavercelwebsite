@@ -47,9 +47,12 @@ const Player = () => {
     return JSON.parse(localStorage.getItem("likedSongs")) || [];
   });
 
+  // Full-screen (browser) state
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
   const inputRef = useRef();
 
-  // You Might Like slider
+  // You Might Like horizontal scroll
   const scrollRef = useRef(null);
   const scrollLeft = (scrollRef) => {
     if (scrollRef.current) {
@@ -66,7 +69,6 @@ const Player = () => {
   const swipeStartX = useRef(null);
   const swipeStartY = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
   const swipeAreaRef = useRef(null);
 
   const handleSwipeStart = (e) => {
@@ -74,7 +76,6 @@ const Player = () => {
     const touch = e.touches[0];
     swipeStartX.current = touch.clientX;
     swipeStartY.current = touch.clientY;
-    setIsSwiping(true);
     setSwipeOffset(0);
   };
 
@@ -85,16 +86,16 @@ const Player = () => {
     const dx = touch.clientX - swipeStartX.current;
     const dy = touch.clientY - swipeStartY.current;
 
-    // vertical move > horizontal -> normal scroll
+    // vertical movement > horizontal -> normal scroll
     if (Math.abs(dy) > Math.abs(dx)) return;
 
-    e.preventDefault(); // horizontal swipe
+    // horizontal swipe: prevent vertical scroll
+    e.preventDefault();
     setSwipeOffset(dx);
   };
 
   const handleSwipeEnd = () => {
     if (swipeStartX.current == null) {
-      setIsSwiping(false);
       setSwipeOffset(0);
       return;
     }
@@ -102,25 +103,25 @@ const Player = () => {
     const delta = swipeOffset;
     const width =
       swipeAreaRef.current?.offsetWidth || window.innerWidth || 300;
-    const threshold = width * 0.3; // 30% screen
+    const threshold = width * 0.3; // 30% screen se jyada tabhi change
 
     if (Math.abs(delta) > threshold) {
-      // animation: slide out
-      setSwipeOffset(delta < 0 ? -width : width);
+      const goingNext = delta < 0; // right swipe -> next
+
+      // slide out animation
+      setSwipeOffset(goingNext ? -width : width);
 
       setTimeout(() => {
-        if (delta < 0) {
-          nextSong(); // right drag -> next
+        if (goingNext) {
+          nextSong();
         } else {
-          prevSong(); // left drag -> prev
+          prevSong();
         }
         setSwipeOffset(0);
-        setIsSwiping(false);
       }, 120);
     } else {
-      // snap back
+      // snap back – koi change nahi
       setSwipeOffset(0);
-      setIsSwiping(false);
     }
 
     swipeStartX.current = null;
@@ -169,7 +170,7 @@ const Player = () => {
     }
   }, [currentSong]);
 
-  // suggestions + volume + finished
+  // suggestions + volume + ended
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!currentSong?.id) return;
@@ -315,6 +316,28 @@ const Player = () => {
 
   const albumId = detail?.album?.id;
   const albumName = detail?.album?.name || "";
+
+  // ---- Full-screen (browser) helpers ----
+  const toggleFullScreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (e) {
+      console.log("Fullscreen error", e);
+    }
+  };
+
+  useEffect(() => {
+    const handler = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+  // ---------------------------------------
 
   return (
     <div
@@ -507,6 +530,19 @@ const Player = () => {
           {/* MAXIMIZED VIEW */}
           {isMaximized && currentSong && (
             <>
+              {/* Fullscreen pill – mobile only */}
+              <button
+                onClick={toggleFullScreen}
+                className="lg:hidden fixed bottom-[4.5rem] left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-black/40 text-[0.75rem] flex items-center gap-2 backdrop-blur-sm border border-white/10"
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isFullScreen ? "bg-red-400" : "bg-green-400"
+                  }`}
+                />
+                {isFullScreen ? "Exit full screen" : "Full screen"}
+              </button>
+
               <div
                 className="flex w-full bottom-0 flex-col p-2 pt-2 lg:h-[40rem] h-[45rem] gap-4 scroll-hide overflow-y-scroll rounded-tl-2xl rounded-tr-2xl Player scroll-smooth"
                 ref={swipeAreaRef}

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
@@ -97,13 +97,32 @@ const ArtistsDetails = () => {
   const imageUrl =
     artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
 
+  // 🔥 Singles ko proper song objects me convert karna
+  const singlesAsSongs = singles
+    .map((single) => {
+      // Agar already song object hai (direct downloadUrl/audio hai)
+      if (single.downloadUrl || single.audio) return single;
+
+      // Agar single ke andar songs[] hai to first track use karo
+      const track = single.songs?.[0];
+      if (!track) return null;
+
+      return {
+        ...track,
+        id: track.id || single.id,
+        name: single.name || track.name,
+        image: track.image || single.image,
+        artists: track.artists || single.artists,
+      };
+    })
+    .filter(Boolean);
+
   return (
     <>
       <Navbar />
 
       {/* Pure page scrollable, andar ka koi section alag se scroll nahi karega */}
       <main className="pt-[9rem] lg:pt-[6.5rem] pb-[6rem] lg:pb-[4.5rem] px-4 lg:px-16 flex flex-col gap-8">
-
         {/* HERO SECTION */}
         <section className="flex flex-col lg:flex-row items-center lg:items-end gap-6">
           <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden shadow-xl">
@@ -159,7 +178,7 @@ const ArtistsDetails = () => {
         )}
 
         {/* SINGLES – NEW SONGS WALA CARD STYLE */}
-        {singles.length > 0 && (
+        {singlesAsSongs.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Singles</h2>
 
@@ -173,21 +192,11 @@ const ArtistsDetails = () => {
                 ref={singlesScrollRef}
                 className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-3 w-full overflow-x-auto scroll-smooth scroll-hide px-1 lg:px-0"
               >
-                {singles.map((single) => (
+                {singlesAsSongs.map((single) => (
                   <SongGrid
                     key={single.id}
                     {...single}
-                    song={singles}
-                    // Agar single ke andar songs[] ho to pehla song play kare
-                    downloadUrl={
-                      single.downloadUrl ||
-                      single.songs?.[0]?.downloadUrl ||
-                      single.perma_url
-                    }
-                    image={single.image || single.songs?.[0]?.image}
-                    artists={single.artists || single.songs?.[0]?.artists}
-                    duration={single.duration || single.songs?.[0]?.duration}
-                    name={single.name || single.title}
+                    song={singlesAsSongs}
                   />
                 ))}
               </div>

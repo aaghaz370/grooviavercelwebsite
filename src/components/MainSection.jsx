@@ -124,6 +124,22 @@ const MainSection = () => {
     fetchlatestSongData();
   }, []);
 
+ useEffect(() => {
+  const loadNewReleases = async () => {
+    try {
+      const data = await fetchNewReleases();
+      const songs = data?.new_songs || data?.new_trending || [];
+
+      // 12 songs only
+      setNewReleases(songs.slice(0, 12));
+    } catch (err) {
+      console.error("New Releases Fetch Error:", err);
+    }
+  };
+
+  loadNewReleases();
+}, []); 
+
   useEffect(() => {
     const combineArray = [
       ...recentlyPlayedSongs,
@@ -327,20 +343,6 @@ const MainSection = () => {
   );
 };
 
-useEffect(() => {
-  const loadNewReleases = async () => {
-    try {
-      const data = await fetchNewReleases();
-      const songs = data?.new_songs || data?.new_trending || [];
 
-      // 12 songs only
-      setNewReleases(songs.slice(0, 12));
-    } catch (err) {
-      console.error("New Releases Fetch Error:", err);
-    }
-  };
-
-  loadNewReleases();
-}, []);
 
 export default MainSection;

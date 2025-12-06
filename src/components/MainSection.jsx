@@ -13,6 +13,7 @@ import NewSongCard from "./NewSongCard";
 import TrendingCard from "./TrendingCard";
 import GoldenEraSection from "./sections/GoldenEraSection";
 import MoodSection from "./sections/MoodSection";
+import CommunitySection from "./sections/CommunitySection";
 
 import {
   MdOutlineKeyboardArrowLeft,
@@ -335,6 +336,10 @@ const MainSection = () => {
           </div>
         </div>
       )}
+
+      
+      {/* From the Community – manual playlists */}
+<CommunitySection />
       
       {/* Golden Era Playlists */}
       <GoldenEraSection />

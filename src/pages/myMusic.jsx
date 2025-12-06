@@ -271,14 +271,16 @@ const MyMusic = () => {
             </section>
           )}
 
-          {/* LIKED ALBUMS – same style as Liked Playlists cards */}
+          {/* LIKED ALBUMS – playlist style cards, single horizontal row */}
 {likedAlbums.length > 0 && (
   <section className="flex flex-col gap-2">
     <h1 className="text-lg lg:text-xl font-semibold mb-1">
       Liked Albums
     </h1>
 
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
+    <div
+      className="flex gap-3 lg:gap-4 overflow-x-auto scroll-hide pb-1"
+    >
       {likedAlbums.map((album) => {
         const title =
           album.name || album.title || album.album || "Unknown Album";
@@ -293,8 +295,8 @@ const MyMusic = () => {
 
         return (
           <Link key={album.id} to={`/albums/${album.id}`}>
-            <div className="w-full group cursor-pointer">
-              {/* square image – same feel as playlist card */}
+            <div className="group cursor-pointer flex-none w-[9.5rem] sm:w-[10.5rem]">
+              {/* square image – playlist style */}
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5">
                 <img
                   src={cover}
@@ -303,7 +305,7 @@ const MyMusic = () => {
                 />
               </div>
 
-              {/* text info */}
+              {/* text */}
               <div className="mt-1.5 flex flex-col">
                 <span className="text-sm font-semibold truncate">
                   {title}
@@ -321,6 +323,7 @@ const MyMusic = () => {
     </div>
   </section>
 )}
+
 
           {/* -------- LIKED PLAYLISTS -------- */}
           {likedPlaylists.length > 0 && (

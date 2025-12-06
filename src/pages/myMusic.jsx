@@ -1,67 +1,258 @@
+// src/pages/MyMusic.jsx
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
 import SongsList from "../components/SongsList";
+import PlaylistItems from "../components/Items/PlaylistItems";
+import { fetchAlbumByID } from "../../fetch"; // path tumhare project ka
 
 import { FaHeart } from "react-icons/fa6";
-
-import {
-  MdOutlineKeyboardArrowLeft,
-  MdOutlineKeyboardArrowRight,
-} from "react-icons/md";
-import PlaylistItems from "../components/Items/PlaylistItems";
-import AlbumItems from "../components/Items/AlbumItems";
 
 const MyMusic = () => {
   const [likedSongs, setLikedSongs] = useState([]);
   const [likedAlbums, setLikedAlbums] = useState([]);
-  const [list , setList ] = useState({});
   const [likedPlaylists, setLikedPlaylists] = useState([]);
+  const [albumTrackMap, setAlbumTrackMap] = useState({}); // { [albumId]: songs[] }
 
-  // Separate refs for albums and playlists
+  const [sortMode, setSortMode] = useState("recent"); // recent | az | za
+
+  // custom playlists: { id, name, createdAt, songs: [songObj] }
+  const [customPlaylists, setCustomPlaylists] = useState([]);
+
+  // create playlist modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [selectedSongIds, setSelectedSongIds] = useState([]);
+
   const albumsScrollRef = useRef(null);
-  const playlistsScrollRef = useRef(null);
 
-
+  // --------- LocalStorage se data load ----------
   useEffect(() => {
     const storedLikedSongs =
       JSON.parse(localStorage.getItem("likedSongs")) || [];
+    const storedAlbums =
+      JSON.parse(localStorage.getItem("likedAlbums")) || [];
+    const storedPlaylists =
+      JSON.parse(localStorage.getItem("likedPlaylists")) || [];
+    const storedCustom =
+      JSON.parse(localStorage.getItem("customPlaylists")) || [];
+
+    // custom playlist migration (old structure → new)
+    const migratedCustom = (storedCustom || []).map((pl) => {
+      if (pl.songs && Array.isArray(pl.songs)) return pl;
+
+      if (pl.songIds && Array.isArray(pl.songIds)) {
+        const songs = storedLikedSongs.filter((s) =>
+          pl.songIds.includes(s.id)
+        );
+        return {
+          id: pl.id,
+          name: pl.name,
+          createdAt: pl.createdAt || Date.now(),
+          songs,
+        };
+      }
+      return {
+        id: pl.id,
+        name: pl.name,
+        createdAt: pl.createdAt || Date.now(),
+        songs: [],
+      };
+    });
+
     setLikedSongs(storedLikedSongs);
-    setList(storedLikedSongs);
-    
-    setLikedAlbums(JSON.parse(localStorage.getItem("likedAlbums")) || []);
-    setLikedPlaylists(JSON.parse(localStorage.getItem("likedPlaylists")) || []);
-    // console.log(likedPlaylists);
+    setLikedAlbums(storedAlbums);
+    setLikedPlaylists(storedPlaylists);
+    setCustomPlaylists(migratedCustom);
+
+    localStorage.setItem("customPlaylists", JSON.stringify(migratedCustom));
   }, []);
 
-  const scrollLeft = (ref) => {
-    if (ref.current) ref.current.scrollBy({ left: -800, behavior: "smooth" });
+  // --------- Har liked album ke liye songs fetch (sirf ek baar per album) ----------
+  useEffect(() => {
+    const loadAlbumSongs = async () => {
+      try {
+        const missing = likedAlbums.filter(
+          (alb) => alb.id && !albumTrackMap[alb.id]
+        );
+
+        for (const alb of missing) {
+          const res = await fetchAlbumByID(alb.id);
+          const songs = res?.data?.[0]?.songs || [];
+
+          setAlbumTrackMap((prev) => ({
+            ...prev,
+            [alb.id]: songs,
+          }));
+        }
+      } catch (err) {
+        console.error("Error loading album songs for MyMusic:", err);
+      }
+    };
+
+    if (likedAlbums.length) {
+      loadAlbumSongs();
+    }
+  }, [likedAlbums, albumTrackMap]);
+
+  // --------- Helpers ----------
+  const getSortedSongs = () => {
+    const arr = [...likedSongs];
+    if (sortMode === "az") {
+      arr.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    } else if (sortMode === "za") {
+      arr.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
+    }
+    return arr;
   };
 
-  const scrollRight = (ref) => {
-    if (ref.current) ref.current.scrollBy({ left: 800, behavior: "smooth" });
+  const sortedLikedSongs = getSortedSongs();
+
+  const handlePlayAll = () => {
+    if (!sortedLikedSongs.length) return;
+    // queue logic tum baad me add kar sakte ho
   };
 
+  const handleShuffleAll = () => {
+    if (!sortedLikedSongs.length) return;
+    // shuffle logic baad me
+  };
+
+  // playlist creation
+  const openCreatePlaylist = () => {
+    if (!likedSongs.length) return;
+    setNewPlaylistName("");
+    setSelectedSongIds([]);
+    setIsCreateModalOpen(true);
+  };
+
+  const toggleSelectSong = (id) => {
+    setSelectedSongIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleCreatePlaylistSave = () => {
+    const name = newPlaylistName.trim();
+    if (!name || selectedSongIds.length === 0) return;
+
+    const songs = likedSongs
+      .filter((s) => selectedSongIds.includes(s.id))
+      .map((s) => ({ ...s }));
+
+    const newPlaylist = {
+      id: Date.now(),
+      name,
+      createdAt: Date.now(),
+      songs,
+    };
+
+    const updated = [newPlaylist, ...customPlaylists];
+    setCustomPlaylists(updated);
+    localStorage.setItem("customPlaylists", JSON.stringify(updated));
+
+    setIsCreateModalOpen(false);
+  };
+
+  const handleDeletePlaylist = (id) => {
+    const updated = customPlaylists.filter((pl) => pl.id !== id);
+    setCustomPlaylists(updated);
+    localStorage.setItem("customPlaylists", JSON.stringify(updated));
+  };
+
+  const getPlaylistCover = (playlist) =>
+    playlist.songs?.[0]?.image || "/Unknown.png";
+
+  const nothingLiked =
+    likedSongs.length === 0 &&
+    likedAlbums.length === 0 &&
+    likedPlaylists.length === 0 &&
+    customPlaylists.length === 0;
+
+  // --------- UI ----------
   return (
     <>
       <Navbar />
-      <div className="flex flex-col mb-[12rem] gap-[2rem] ">
-        {/* Header */}
-        <div className="lg:ml-[3rem] ml-[2rem] flex items-center gap-5 mt-[9rem] lg:mt-[6rem]">
-          <span className=" flex justify-center items-center h-[8rem] w-[8rem] lg:h-[12rem] lg:w-[12rem] rounded-lg liked ">
-            <FaHeart className="text-5xl  icon " />
-          </span>
-          <h2 className="text-[1.8rem] lg:text-3xl font-semibold lg:font-bold ml-4">
-            My Music
-          </h2>
+
+      {/* min-h-screen → niche black patch nahi aayega */}
+      <div className="flex flex-col min-h-screen mb-[12rem] gap-[1.75rem]">
+        {/* HEADER CARD */}
+        <div className="mt-[8.5rem] lg:mt-[6rem] px-[1.6rem] lg:px-[3rem]">
+          <div className="card flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="flex justify-center items-center h-[3.2rem] w-[3.2rem] lg:h-[3.5rem] lg:w-[3.5rem] rounded-xl liked">
+                <FaHeart className="text-2xl icon" />
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
+                  Library
+                </span>
+                <h2 className="text-[1.5rem] lg:text-[1.8rem] font-semibold leading-tight">
+                  My Music
+                </h2>
+                <span className="text-xs opacity-70">
+                  Liked songs, albums & playlists at one place
+                </span>
+              </div>
+            </div>
+
+            {likedSongs.length > 0 && (
+              <button
+                onClick={openCreatePlaylist}
+                className="text-xs px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15"
+              >
+                + Create playlist
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex gap-[1.5rem] flex-col ">
-          <div>
-            {likedSongs.length > 0 && (
-              <div className="flex flex-wrap">
-                {likedSongs.map(
+        {/* MAIN CONTENT */}
+        <div className="flex flex-col gap-[1.75rem] px-[1.6rem] lg:px-[3rem]">
+          {/* -------- LIKED SONGS -------- */}
+          {likedSongs.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex flex-col">
+                  <h3 className="text-lg lg:text-xl font-semibold">
+                    Liked Songs
+                  </h3>
+                  <span className="text-xs opacity-70">
+                    {likedSongs.length} song
+                    {likedSongs.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={sortMode}
+                    onChange={(e) => setSortMode(e.target.value)}
+                    className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 outline-none cursor-pointer"
+                  >
+                    <option value="recent">Recently added</option>
+                    <option value="az">Title A–Z</option>
+                    <option value="za">Title Z–A</option>
+                  </select>
+                  <button
+                    onClick={handleShuffleAll}
+                    className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
+                  >
+                    Shuffle
+                  </button>
+                  <button
+                    onClick={handlePlayAll}
+                    className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"
+                  >
+                    Play all
+                  </button>
+                </div>
+              </div>
+
+              {/* songs ke beech halka gap */}
+              <div className="flex flex-wrap gap-y-2">
+                {sortedLikedSongs.map(
                   (song, index) =>
                     song && (
                       <SongsList
@@ -72,84 +263,278 @@ const MyMusic = () => {
                         name={song.name}
                         duration={song.duration}
                         downloadUrl={song.audio}
-                        song={list}
+                        song={sortedLikedSongs}
                       />
                     )
                 )}
               </div>
-            )}
-          </div>
+            </section>
+          )}
 
-          <div>
-            {likedAlbums.length > 0 && (
-             <>
-              <h1 className="text-2xl font-semibold lg:ml-4 p-4">Liked Albums</h1>
+          {/* -------- LIKED ALBUMS (NEW FIXED STYLE) -------- */}
+          {likedAlbums.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h1 className="text-lg lg:text-xl font-semibold mb-1">
+                Liked Albums
+              </h1>
 
-              <div className="flex mx-1 lg:mx-8 items-center gap-3">
-              <MdOutlineKeyboardArrowLeft
-                  className=" arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem]  hidden lg:block"
-                  onClick={() => scrollLeft(albumsScrollRef)}
-                />
-                <div
-                  className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-2 overflow-x-auto scroll-hide w-max  px-3 lg:px-0 scroll-smooth"
-                  ref={albumsScrollRef}
-                >
-                  {likedAlbums.map((album) => (
-                    <AlbumItems key={album.id} {...album} />
-                  ))}
-             
-                </div>
+              {/* Horizontal scroll – har card same size */}
+              <div
+                ref={albumsScrollRef}
+                className="flex overflow-x-auto scroll-hide gap-4 pb-1"
+              >
+                {likedAlbums.map((album) => {
+                  const apiSongs = albumTrackMap[album.id] || [];
+                  const songs = apiSongs.length
+                    ? apiSongs
+                    : Array.isArray(album.songs)
+                    ? album.songs
+                    : [];
 
-                {/* Scroll Right Button */}
-                <MdOutlineKeyboardArrowRight
-                  className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem]  hidden lg:block"
-                  onClick={() => scrollRight(albumsScrollRef)}
-                />
+                  const sampleTracks = songs.slice(0, 3);
+
+                  const title =
+                    album.name ||
+                    album.title ||
+                    album.album ||
+                    "Unknown Album";
+
+                  const artist =
+                    album.primaryArtists ||
+                    album.artist ||
+                    album.subtitle ||
+                    "";
+
+                  const songsCount =
+                    album.songCount ||
+                    (Array.isArray(songs) ? songs.length : 0);
+
+                  const cover = album.image || album.thumbnail || "/Unknown.png";
+
+                  return (
+                    <div
+                      key={album.id}
+                      className="flex-none w-[260px] h-[260px]"
+                    >
+                      <div className="h-full w-full rounded-[1.75rem] bg-gradient-to-br from-white/12 via-white/5 to-white/5 shadow-lg overflow-hidden p-4 flex flex-col">
+                        {/* Top: album cover + info */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <img
+                            src={cover}
+                            alt={title}
+                            className="h-14 w-14 rounded-xl object-cover shadow-md"
+                          />
+                          <div className="flex flex-col overflow-hidden">
+                            <span className="text-sm font-semibold truncate">
+                              {title}
+                            </span>
+                            {artist && (
+                              <span className="text-xs opacity-80 truncate">
+                                {artist}
+                              </span>
+                            )}
+                            {songsCount > 0 && (
+                              <span className="text-[0.7rem] opacity-60">
+                                {songsCount} song
+                                {songsCount > 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bottom: sample tracks (max 3) */}
+                        {sampleTracks.length > 0 && (
+                          <div className="mt-auto bg-black/15 rounded-2xl px-3 py-2 overflow-hidden">
+                            <div className="space-y-1.5">
+                              {sampleTracks.map((t) => {
+                                const tName = t.name || t.title || "";
+                                const tArtist =
+                                  (t.artists?.primary || [])
+                                    .map((a) => a.name)
+                                    .join(", ") || t.subtitle || "";
+                                return (
+                                  <div
+                                    key={t.id || tName}
+                                    className="text-xs flex flex-col truncate"
+                                  >
+                                    <span className="font-medium truncate">
+                                      {tName}
+                                    </span>
+                                    {tArtist && (
+                                      <span className="opacity-70 truncate">
+                                        {tArtist}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </>)}
-          </div>
+            </section>
+          )}
 
-          <div>
-            {likedPlaylists.length > 0 && (
-              <>
-                <h1 className="text-2xl font-semibold lg:ml-4 p-4">Liked Playlists</h1>
-
-                <div className="flex mx-1 lg:mx-8 items-center gap-3">
-                  {/* Scroll Left Button */}
-                  <MdOutlineKeyboardArrowLeft
-                    className="arrow-btn absolute left-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem]  hidden lg:block"
-                    onClick={() => scrollLeft(playlistsScrollRef)}
-                  />
-
-                  {/* Scrollable Container */}
-                  <div
-                    className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-[0.66rem] overflow-x-auto scroll-hide w-max  px-3 lg:px-0 scroll-smooth"
-                    ref={playlistsScrollRef}
-                  >
-                    {likedPlaylists.map((playlist) => (
-                      <PlaylistItems key={playlist.id} {...playlist} />
-                    ))}
+          {/* -------- LIKED PLAYLISTS -------- */}
+          {likedPlaylists.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h1 className="text-lg lg:text-xl font-semibold mb-1">
+                Liked Playlists
+              </h1>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
+                {likedPlaylists.map((playlist) => (
+                  <div key={playlist.id} className="w-full">
+                    <PlaylistItems {...playlist} />
                   </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-                  {/* Scroll Right Button */}
-                  <MdOutlineKeyboardArrowRight
-                    className="arrow-btn absolute right-0 text-3xl w-[2rem] hover:scale-125 transition-all duration-300 ease-in-out cursor-pointer h-[9rem]  hidden lg:block "
-                    onClick={() => scrollRight(playlistsScrollRef)}
+          {/* -------- CUSTOM PLAYLISTS -------- */}
+          {customPlaylists.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <h1 className="text-lg lg:text-xl font-semibold">
+                  My Playlists
+                </h1>
+                <span className="text-xs opacity-70">
+                  {customPlaylists.length} playlist
+                  {customPlaylists.length > 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-3 lg:gap-4">
+                {customPlaylists.map((pl) => (
+                  <div
+                    key={pl.id}
+                    className="w-[47%] sm:w-[31%] md:w-[23%] lg:w-[18%] min-w-[130px] flex flex-col gap-1"
+                  >
+                    <Link to={`/my-playlists/${pl.id}`}>
+                      <div className="aspect-square rounded-xl overflow-hidden bg-white/5">
+                        <img
+                          src={getPlaylistCover(pl)}
+                          alt={pl.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    </Link>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold truncate">
+                        {pl.name}
+                      </span>
+                      <span className="text-xs opacity-70">
+                        {pl.songs.length} song
+                        {pl.songs.length > 1 ? "s" : ""} • Custom playlist
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDeletePlaylist(pl.id)}
+                      className="self-start mt-1 text-[0.7rem] px-2.5 py-1 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* -------- EMPTY STATE -------- */}
+          {nothingLiked && (
+            <div className="mt-4 text-sm opacity-80">
+              No liked songs, albums or playlists yet. Start exploring and tap
+              the ♥ icon on anything you love.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* CREATE PLAYLIST MODAL */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#09090B] w-[95%] max-w-[550px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-col">
+                <span className="text-xs opacity-70 uppercase tracking-[0.16em]">
+                  New playlist
+                </span>
+                <h2 className="text-lg font-semibold">Create playlist</h2>
+              </div>
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-xs px-3 py-1 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+              >
+                Close
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Playlist name"
+              value={newPlaylistName}
+              onChange={(e) => setNewPlaylistName(e.target.value)}
+              className="w-full text-sm px-3 py-2 rounded-lg bg-white/5 border border-white/15 outline-none"
+            />
+
+            <span className="text-[0.7rem] opacity-70 mt-1">
+              Choose songs from your liked songs
+            </span>
+
+            <div className="overflow-y-auto max-h-[50vh] pr-1">
+              {likedSongs.map((song) => (
+                <label
+                  key={song.id}
+                  className="flex items-center gap-3 py-1.5 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedSongIds.includes(song.id)}
+                    onChange={() => toggleSelectSong(song.id)}
+                    className="accent-white"
                   />
-                </div>
-              </>
-            )}
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={song.image}
+                      alt={song.name}
+                      className="h-9 w-9 rounded-md object-cover"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold truncate">
+                        {song.name}
+                      </span>
+                      <span className="text-[0.7rem] opacity-70 truncate">
+                        {(song.artists?.primary || [])
+                          .map((a) => a.name)
+                          .join(", ")}
+                      </span>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                onClick={() => setIsCreatePlaylist(false)}
+                className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreatePlaylistSave}
+                className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90"
+              >
+                Create
+              </button>
+            </div>
           </div>
         </div>
-
-        {likedSongs.length === 0 &&
-          likedAlbums.length === 0 &&
-          likedPlaylists.length === 0 && (
-            <li className="list-disc text-xl ml-[3rem]">
-              No Liked Songs, Albums, or Playlists.
-            </li>
-          )}
-      </div>
+      )}
 
       <Player />
       <Navigator />

@@ -53,25 +53,57 @@ export const communityPlaylists = [
     from: "#2A103D",
     to: "#0B0314",
   },
-
-
-  
   {
-    id: 69696969,
-    title: "Bollywood Drive",
-    owner: "Community Mix",
-    songCountLabel: "30 songs",
+    id: 1267014088,
+    title: "Late-Night Drive",
+    owner: "Groovia Community",
+    songCountLabel: "20 songs",
     from: "#3A1E0D",
     to: "#120903",
   },
   {
-    id: 11223344,
-    title: "Night Mode",
-    owner: "Groovia",
-    songCountLabel: "20 songs",
+    id: 1262711737,
+    title: "Retro Feel",
+    owner: "Groovia Community",
+    songCountLabel: "48 songs",
     from: "#171717",
     to: "#0A0A0A",
   },
 
+
+
+  {
+    id: 159470172,          // ⬅️ example – apna playlist ID daal
+    title: "60s Duets",
+    owner: "Groovia Community",
+    songCountLabel: "25 songs",
+    // har card ka alag gradient
+    from: "#111827",
+    to: "#020617",
+  },
+    {
+    id: 1199709032,
+    title: "Best of Phonk",
+    owner: "Groovia Community",
+    songCountLabel: "60 songs",
+    from: "#1f2937",
+    to: "#111827",
+  },
+    {
+    id: 1070330095,
+    title: "Nature Instrumentals",
+    owner: "Groovia Community",
+    songCountLabel: "23 songs",
+    from: "#2A0F0F",
+    to: "#0F0303",
+  },  
+  {
+    id: 756986959,
+    title: "Retro Duets",
+    owner: "Groovia Community",
+    songCountLabel: "20 songs",
+    from: "#0D1B2A",
+    to: "#020617",
+  },
   // ➕ aur playlists yahan add karte jao
 ];

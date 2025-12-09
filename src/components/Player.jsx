@@ -51,6 +51,13 @@ const Player = () => {
     return JSON.parse(localStorage.getItem("likedSongs")) || [];
   });
 
+  // ⭐ NEW: queue / play-next
+  const [upNext, setUpNext] = useState([]);
+
+  // ⭐ NEW: custom sleep timer UI state
+  const [showCustomTimer, setShowCustomTimer] = useState(false);
+  const [customHours, setCustomHours] = useState("");
+
   // ---- FULLSCREEN STATE (for home footer hide/show) ----
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -81,6 +88,10 @@ const Player = () => {
 
   // You Might Like horizontal scroll
   const scrollRef = useRef(null);
+
+  // ⭐ NEW: Play Next horizontal scroll
+  const queueScrollRef = useRef(null);
+
   const scrollLeft = (scrollRef) => {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft -= 1000;
@@ -344,13 +355,53 @@ const Player = () => {
   const albumId = detail?.album?.id;
   const albumName = detail?.album?.name || "";
 
-  // ⭐ Sleep timer buttons
+  // ⭐ Sleep timer preset buttons
   const sleepOptions = [
     { label: "Off", value: null },
     { label: "15 min", value: 15 },
     { label: "30 min", value: 30 },
     { label: "60 min", value: 60 },
   ];
+
+  // ⭐ Calculate Play Next queue from currentSong + song[]
+  useEffect(() => {
+    if (!currentSong || !Array.isArray(song) || !song.length) {
+      setUpNext([]);
+      return;
+    }
+
+    const idx = song.findIndex((s) => s.id === currentSong.id);
+    if (idx === -1) {
+      setUpNext([]);
+      return;
+    }
+
+    // next 10 items as queue
+    const nextItems = song.slice(idx + 1, idx + 11);
+    setUpNext(nextItems);
+  }, [currentSong, song]);
+
+  // ⭐ Custom sleep timer apply
+  const handleCustomSleepApply = () => {
+    const hrs = parseFloat(customHours);
+    if (!hrs || hrs <= 0) return;
+
+    // max 12 hours for safety
+    const clamped = Math.min(hrs, 12);
+    const minutes = Math.round(clamped * 60);
+
+    setSleepTimer(minutes);
+    setShowCustomTimer(false);
+  };
+
+  const formatSleepLabel = (mins) => {
+    if (!mins || mins <= 0) return "";
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h && m) return `${h} hr ${m} min`;
+    if (h) return `${h} hr`;
+    return `${m} min`;
+  };
 
   return (
     <div
@@ -717,7 +768,7 @@ const Player = () => {
 
                         {/* 💤 SLEEP TIMER CONTROLS (MAX VIEW) */}
                         <div className="flex flex-col items-center mt-1 mb-2">
-                          <div className="flex items-center gap-2 text-[0.7rem] opacity-80">
+                          <div className="flex flex-wrap items-center gap-2 text-[0.7rem] opacity-80 justify-center">
                             <span className="uppercase tracking-[0.16em] text-[0.6rem] opacity-70">
                               Sleep timer
                             </span>
@@ -735,10 +786,47 @@ const Player = () => {
                                 {opt.label}
                               </button>
                             ))}
+                            <button
+                              onClick={() =>
+                                setShowCustomTimer((prev) => !prev)
+                              }
+                              className={`px-3 py-1 rounded-full border text-[0.65rem] transition ${
+                                showCustomTimer
+                                  ? "bg-white text-black border-white"
+                                  : "bg-white/5 border-white/20 hover:bg-white/10"
+                              }`}
+                            >
+                              Custom
+                            </button>
                           </div>
+
+                          {showCustomTimer && (
+                            <div className="flex items-center gap-2 mt-2 text-[0.7rem]">
+                              <input
+                                type="number"
+                                min="0.25"
+                                max="12"
+                                step="0.25"
+                                value={customHours}
+                                onChange={(e) => setCustomHours(e.target.value)}
+                                className="w-16 px-2 py-1 rounded-lg bg-black/40 border border-white/20 text-center text-[0.7rem] outline-none"
+                                placeholder="1.0"
+                              />
+                              <span>hr</span>
+                              <button
+                                onClick={handleCustomSleepApply}
+                                className="px-3 py-1 rounded-full border border-white/40 bg-white/10 hover:bg-white/20 text-[0.7rem]"
+                              >
+                                Set
+                              </button>
+                            </div>
+                          )}
+
                           {sleepTimerMinutes && (
                             <span className="mt-1 text-[0.65rem] opacity-60">
-                              Will stop after ~{sleepTimerMinutes} min
+                              Will stop after ~{formatSleepLabel(
+                                sleepTimerMinutes
+                              )}
                             </span>
                           )}
                         </div>
@@ -748,6 +836,44 @@ const Player = () => {
 
                   {/* LOWER CONTENT (no swipe here) */}
                   <div className="flex flex-col overflow-hidden  p-1">
+                    {/* ⭐ PLAY NEXT / QUEUE SECTION */}
+                    {Array.isArray(upNext) && upNext.length > 0 && (
+                      <div className="flex flex-col justify-center items-center w-full ">
+                        <div className="flex flex-col w-full px-6 lg:px-16">
+                          <h2 className="text-xl lg:text-2xl font-semibold">
+                            Play Next
+                          </h2>
+                          <p className="text-[0.7rem] opacity-70 mt-1">
+                            Upcoming tracks in your queue • Tap any song to jump
+                            from here.
+                          </p>
+                        </div>
+                        <div className="flex justify-center items-center gap-3 w-full mt-2">
+                          <MdOutlineKeyboardArrowLeft
+                            className="text-3xl hover:scale-125 cursor-pointer h-[9rem]   hidden lg:block arrow-btn"
+                            onClick={() => scrollLeft(queueScrollRef)}
+                          />
+                          <div
+                            className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
+                            ref={queueScrollRef}
+                          >
+                            {upNext.map((songItem, index) => (
+                              <SongGrid
+                                key={songItem.id || index}
+                                {...songItem}
+                                // queue should respect original list
+                                song={song}
+                              />
+                            ))}
+                          </div>
+                          <MdOutlineKeyboardArrowRight
+                            className="text-3xl hover:scale-125  cursor-pointer h-[9rem] hidden lg:block arrow-btn"
+                            onClick={() => scrollRight(queueScrollRef)}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       {Array.isArray(suggetions) && suggetions.length > 0 && (
                         <div className="flex flex-col justify-center items-center w-full ">

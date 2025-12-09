@@ -92,14 +92,14 @@ const Player = () => {
   // ⭐ NEW: Play Next horizontal scroll
   const queueScrollRef = useRef(null);
 
-  const scrollLeft = (scrollRef) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft -= 1000;
+  const scrollLeft = (ref) => {
+    if (ref.current) {
+      ref.current.scrollLeft -= 1000;
     }
   };
-  const scrollRight = (scrollRef) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft += 1000;
+  const scrollRight = (ref) => {
+    if (ref.current) {
+      ref.current.scrollLeft += 1000;
     }
   };
 
@@ -124,10 +124,8 @@ const Player = () => {
     const dx = touch.clientX - swipeStartX.current;
     const dy = touch.clientY - swipeStartY.current;
 
-    // vertical movement > horizontal -> normal scroll
     if (Math.abs(dy) > Math.abs(dx)) return;
 
-    // horizontal swipe: prevent vertical scroll
     e.preventDefault();
     setSwipeOffset(dx);
   };
@@ -141,12 +139,11 @@ const Player = () => {
     const delta = swipeOffset;
     const width =
       swipeAreaRef.current?.offsetWidth || window.innerWidth || 300;
-    const threshold = width * 0.3; // 30% se jyada tabhi change
+    const threshold = width * 0.3;
 
     if (Math.abs(delta) > threshold) {
-      const goingNext = delta < 0; // right swipe -> next
+      const goingNext = delta < 0;
 
-      // slide out animation
       setSwipeOffset(goingNext ? -width : width);
 
       setTimeout(() => {
@@ -158,7 +155,6 @@ const Player = () => {
         setSwipeOffset(0);
       }, 120);
     } else {
-      // snap back – koi change nahi
       setSwipeOffset(0);
     }
 
@@ -376,7 +372,6 @@ const Player = () => {
       return;
     }
 
-    // next 10 items as queue
     const nextItems = song.slice(idx + 1, idx + 11);
     setUpNext(nextItems);
   }, [currentSong, song]);
@@ -386,7 +381,6 @@ const Player = () => {
     const hrs = parseFloat(customHours);
     if (!hrs || hrs <= 0) return;
 
-    // max 12 hours for safety
     const clamped = Math.min(hrs, 12);
     const minutes = Math.round(clamped * 60);
 
@@ -845,7 +839,7 @@ const Player = () => {
                           </h2>
                           <p className="text-[0.7rem] opacity-70 mt-1">
                             Upcoming tracks in your queue • Tap any song to jump
-                            from here.
+                            instantly.
                           </p>
                         </div>
                         <div className="flex justify-center items-center gap-3 w-full mt-2">
@@ -857,11 +851,10 @@ const Player = () => {
                             className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
                             ref={queueScrollRef}
                           >
-                            {upNext.map((songItem, index) => (
+                            {upNext.map((qSong, index) => (
                               <SongGrid
-                                key={songItem.id || index}
-                                {...songItem}
-                                // queue should respect original list
+                                key={qSong.id || index}
+                                {...qSong}
                                 song={song}
                               />
                             ))}

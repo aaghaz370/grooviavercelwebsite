@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router"; // agar react-router-dom use kar rahe ho to yaha se change kar lena
+import { Link } from "react-router"; // react-router-dom use karo to yaha change kar lena
 
 const Footer = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Browser fullscreen change listener – agar user system se exit kare to state sync rahe
   useEffect(() => {
     const handleChange = () => {
       const fsElement =
@@ -33,7 +32,9 @@ const Footer = () => {
     try {
       if (!isFullscreen) {
         const root =
-          document.documentElement || document.body || document.getElementById("root");
+          document.documentElement ||
+          document.body ||
+          document.getElementById("root");
 
         if (root.requestFullscreen) {
           await root.requestFullscreen();
@@ -66,8 +67,13 @@ const Footer = () => {
         {/* Top part */}
         <div className="w-full flex justify-between gap-10">
           <div className="ml-[1rem] lg:ml-[4rem] flex flex-col ">
-            <div className="flex items-center ml-[-10px]">
-              <span className="bg"></span>
+            {/* 🔥 NEW: SVG logo same as navbar */}
+            <div className="flex items-center gap-3">
+              <img
+                src="/groovia-logo.svg" // public/groovia-logo.svg
+                alt="Groovia"
+                className="w-10 h-10 lg:w-11 lg:h-11 rounded-full shadow-[0_0_18px_rgba(208,64,255,0.9)]"
+              />
               <div className="gap-1">
                 <span className="Musi font-extrabold text-2xl lg:text-3xl">
                   Groo

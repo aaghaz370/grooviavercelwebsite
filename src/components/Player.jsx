@@ -359,69 +359,67 @@ const Player = () => {
     { label: "60 min", value: 60 },
   ];
 
-  // ⭐ FIXED: Calculate Play Next queue safely (ignore null items + fallback)
+   // ⭐ SUPER SIMPLE: Play Next = current active list ke next tracks (fallback)
   useEffect(() => {
-    if (!currentSong || !Array.isArray(song) || !song.length) {
+    // agar list hi nahi hai to kuch mat dikhao
+    if (!Array.isArray(song) || song.length === 0) {
       setUpNext([]);
       return;
     }
 
-    // null / undefined / bina id waale sab hata do
-    const safeList = song.filter(
-      (s) => s && (s.id || s._id || s.songid || s.songId)
-    );
+    // null / undefined hata do, id na ho tab bhi chalega
+    const safeList = song.filter(Boolean);
 
-    if (!safeList.length) {
+    if (safeList.length === 0) {
       setUpNext([]);
       return;
     }
 
+    // abhi ke liye simple logic:
+    // 1) currentSong ko list me dhundho (id se)
     let idx = -1;
 
-    // 1) try by reference
-    idx = safeList.indexOf(currentSong);
+    if (currentSong) {
+      const currentId =
+        currentSong.id ||
+        currentSong._id ||
+        currentSong.songid ||
+        currentSong.songId ||
+        null;
 
-    // 2) try by id (alag-alag key support)
-    const currentId =
-      currentSong.id ||
-      currentSong._id ||
-      currentSong.songid ||
-      currentSong.songId ||
-      null;
-
-    if (idx === -1 && currentId) {
-      idx = safeList.findIndex((s) => {
-        const sid = s.id || s._id || s.songid || s.songId || null;
-        return sid === currentId;
-      });
-    }
-
-    // 3) last fallback – audio URL match
-    if (idx === -1 && currentSong.audio?.currentSrc) {
-      idx = safeList.findIndex(
-        (s) => s.audio?.currentSrc === currentSong.audio.currentSrc
-      );
-    }
-
-    let nextItems;
-
-    if (idx === -1) {
-      // currentSong list me locate nahi hua, phir bhi queue dikhane ke liye
-      // simply first 10 songs dikha do
-      nextItems = safeList.slice(0, 10);
-    } else {
-      // current ke baad wale 10
-      nextItems = safeList.slice(idx + 1, idx + 11);
-
-      // agar current last item hai to starting se queue bana do
-      if (!nextItems.length && safeList.length > 1) {
-        nextItems = safeList.slice(0, Math.min(10, safeList.length));
+      if (currentId) {
+        idx = safeList.findIndex((s) => {
+          const sid = s.id || s._id || s.songid || s.songId || null;
+          return sid === currentId;
+        });
       }
     }
 
-    setUpNext(nextItems);
+    let queue = [];
+
+    if (idx === -1) {
+      // currentSong nahi mila? koi baat nahi,
+      // bas list ke first 10 songs ko Play Next dikha do.
+      queue = safeList.slice(0, 10);
+    } else {
+      // current ke baad wale songs
+      const after = safeList.slice(idx + 1);
+      // agar uske baad kuch nahi hai to wrap karke start se lo
+      const wrapped =
+        after.length > 0
+          ? after
+          : safeList.length > 1
+          ? safeList.slice(0, safeList.length - 1)
+          : [];
+
+      queue = wrapped.slice(0, 10);
+    }
+
+    setUpNext(queue);
   }, [currentSong, song]);
 
+
+  
   // ⭐ Custom sleep timer apply
   const handleCustomSleepApply = () => {
     const hrs = parseFloat(customHours);

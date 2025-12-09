@@ -32,6 +32,7 @@ const Player = () => {
     repeatMode,
     toggleRepeatMode,
     downloadSong,
+    // Sleep timer from context
     sleepTimerMinutes,
     setSleepTimer,
   } = useContext(MusicContext);
@@ -50,14 +51,14 @@ const Player = () => {
     return JSON.parse(localStorage.getItem("likedSongs")) || [];
   });
 
-  // queue / Play Next
+  // Play Next (queue-ish) – from suggestions
   const [upNext, setUpNext] = useState([]);
 
-  // custom sleep timer
+  // custom sleep timer UI
   const [showCustomTimer, setShowCustomTimer] = useState(false);
   const [customHours, setCustomHours] = useState("");
 
-  // fullscreen
+  // FULLSCREEN STATE (for home footer hide/show)
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -84,9 +85,9 @@ const Player = () => {
 
   const inputRef = useRef();
 
-  // You Might Like scroll
+  // You Might Like horizontal scroll
   const scrollRef = useRef(null);
-  // Play Next scroll
+  // Play Next horizontal scroll
   const queueScrollRef = useRef(null);
 
   const scrollLeft = (ref) => {
@@ -100,7 +101,7 @@ const Player = () => {
     }
   };
 
-  // swipe for prev/next
+  // SWIPE FOR NEXT/PREV (sirf top player area)
   const swipeStartX = useRef(null);
   const swipeStartY = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -121,8 +122,10 @@ const Player = () => {
     const dx = touch.clientX - swipeStartX.current;
     const dy = touch.clientY - swipeStartY.current;
 
+    // vertical movement > horizontal -> normal scroll
     if (Math.abs(dy) > Math.abs(dx)) return;
 
+    // horizontal swipe: prevent vertical scroll
     e.preventDefault();
     setSwipeOffset(dx);
   };
@@ -136,10 +139,12 @@ const Player = () => {
     const delta = swipeOffset;
     const width =
       swipeAreaRef.current?.offsetWidth || window.innerWidth || 300;
-    const threshold = width * 0.3;
+    const threshold = width * 0.3; // 30% se jyada tabhi change
 
     if (Math.abs(delta) > threshold) {
-      const goingNext = delta < 0;
+      const goingNext = delta < 0; // right swipe -> next
+
+      // slide out animation
       setSwipeOffset(goingNext ? -width : width);
 
       setTimeout(() => {
@@ -151,14 +156,16 @@ const Player = () => {
         setSwipeOffset(0);
       }, 120);
     } else {
+      // snap back – koi change nahi
       setSwipeOffset(0);
     }
 
     swipeStartX.current = null;
     swipeStartY.current = null;
   };
+  // END SWIPE
 
-  // progress bar
+  // progress updater
   useEffect(() => {
     if (!currentSong) return;
 
@@ -189,7 +196,7 @@ const Player = () => {
     ? currentSong.artists.primary.map((artist) => artist.name).join(", ")
     : "Unknown Artist";
 
-  // album detail
+  // song -> album detail
   useEffect(() => {
     const albumDetail = async () => {
       const result = await getSongById(currentSong.id);
@@ -206,8 +213,15 @@ const Player = () => {
       if (!currentSong?.id) return;
       const suggestions = await getSuggestionSong(currentSong.id);
       const data = suggestions?.data || [];
+
       setList(data);
-      setSuggetion(data);
+
+      // 👉 Split into Play Next & You Might Like
+      const nextSlice = data.slice(0, 8); // top 8 as Play Next
+      const restSlice = data.slice(8); // remaining for You Might Like
+
+      setUpNext(nextSlice);
+      setSuggetion(restSlice);
     };
 
     fetchSuggestions();
@@ -294,7 +308,6 @@ const Player = () => {
 
   const name = currentSong?.name || "Unknown Title";
 
-  // media session
   useEffect(() => {
     if (!currentSong) return;
 
@@ -348,86 +361,13 @@ const Player = () => {
   const albumId = detail?.album?.id;
   const albumName = detail?.album?.name || "";
 
-  // sleep timer options
+  // Sleep timer preset buttons
   const sleepOptions = [
     { label: "Off", value: null },
     { label: "15 min", value: 15 },
     { label: "30 min", value: 30 },
     { label: "60 min", value: 60 },
   ];
-
-  // --- helper: compare two songs ---
-  const isSameTrack = (a, b) => {
-    if (!a || !b) return false;
-    const aid =
-      a.id || a._id || a.songid || a.songId || a.song_id || a.trackId;
-    const bid =
-      b.id || b._id || b.songid || b.songId || b.song_id || b.trackId;
-
-    if (aid && bid && aid === bid) return true;
-
-    const aSrc = a.audio?.currentSrc || a.audioUrl || a.url;
-    const bSrc = b.audio?.currentSrc || b.audioUrl || b.url;
-    if (aSrc && bSrc && aSrc === bSrc) return true;
-
-    const aName = (a.name || a.title || "").trim().toLowerCase();
-    const bName = (b.name || b.title || "").trim().toLowerCase();
-
-    const getArtistString = (s) =>
-      (s?.artists?.primary || s?.primary_artists || [])
-        .map((ar) => ar.name)
-        .join(",")
-        .trim()
-        .toLowerCase();
-
-    const aArt = getArtistString(a);
-    const bArt = getArtistString(b);
-
-    const aDur = Number(a.duration || 0);
-    const bDur = Number(b.duration || 0);
-
-    if (aName && bName && aName === bName && aArt && bArt && aArt === bArt) {
-      if (!aDur || !bDur) return true;
-      if (Math.abs(aDur - bDur) <= 3) return true; // 3 sec diff allow
-    }
-
-    return false;
-  };
-
-  // --- Play Next queue from context.song ---
-  useEffect(() => {
-    if (!Array.isArray(song) || song.length <= 1) {
-      setUpNext([]);
-      return;
-    }
-
-    const safeList = song.filter(Boolean);
-    if (!safeList.length) {
-      setUpNext([]);
-      return;
-    }
-
-    let idx = -1;
-
-    if (currentSong) {
-      idx = safeList.findIndex((s) => isSameTrack(currentSong, s));
-    }
-
-    let queue = [];
-
-    if (idx === -1) {
-      // currentSong list me locate nahi ho raha
-      // -> current ke similar sab remove karke first 10 dikhao
-      queue = safeList.filter((s) => !isSameTrack(currentSong, s)).slice(0, 10);
-    } else {
-      const after = safeList.slice(idx + 1);
-      const before = safeList.slice(0, idx);
-      const ordered = [...after, ...before]; // wrap around
-      queue = ordered.filter((s) => !isSameTrack(currentSong, s)).slice(0, 10);
-    }
-
-    setUpNext(queue);
-  }, [currentSong, song]);
 
   // custom sleep timer apply
   const handleCustomSleepApply = () => {
@@ -450,35 +390,7 @@ const Player = () => {
     return `${m} min`;
   };
 
-  // ---- FINAL lists for sections ----
-
-  // PlayNext:
-  //  - Prefer queue from context.song
-  //  - If queue empty, use suggestions first 10
-  const playNextFromQueue =
-    Array.isArray(upNext) && upNext.length > 0 ? upNext : [];
-
-  const playNextFromSuggestions =
-    (!playNextFromQueue.length && Array.isArray(suggetions)) ?
-      suggetions.slice(0, 10) : [];
-
-  const playNextList =
-    playNextFromQueue.length > 0 ? playNextFromQueue : playNextFromSuggestions;
-
-  // You Might Like:
-  //  - If queue available -> full suggestions
-  //  - If suggestions se hi PlayNext aya -> baaki suggestions (no duplicate)
-  let youMightLikeList = [];
-  if (Array.isArray(suggetions) && suggetions.length > 0) {
-    if (playNextFromQueue.length > 0) {
-      youMightLikeList = suggetions;
-    } else {
-      const offset = playNextFromSuggestions.length;
-      youMightLikeList = suggetions.slice(offset);
-    }
-  }
-
-  const theme = document.documentElement.getAttribute("data-theme");
+  const themeAttr = document.documentElement.getAttribute("data-theme");
 
   return (
     <div
@@ -512,10 +424,10 @@ const Player = () => {
                   }
                   style={{
                     background: `linear-gradient(to right, ${
-                      theme === "dark" ? "#ddd" : "#09090B"
+                      themeAttr === "dark" ? "#ddd" : "#09090B"
                     } ${
                       (currentTime / Number(currentSong?.duration)) * 100
-                    }%, ${theme === "dark" ? "#252525" : "#dddddd"} ${
+                    }%, ${themeAttr === "dark" ? "#252525" : "#dddddd"} ${
                       (currentTime / Number(currentSong?.duration)) * 100
                     }%)`,
                   }}
@@ -647,9 +559,9 @@ const Player = () => {
                         className="volume icon rounded-lg appearance-none cursor-pointer w-[80px] h-1"
                         style={{
                           background: `linear-gradient(to right, ${
-                            theme === "dark" ? "#ddd" : "#09090B"
+                            themeAttr === "dark" ? "#ddd" : "#09090B"
                           } ${volume}%, ${
-                            theme === "dark" ? "#252525" : "#dddddd"
+                            themeAttr === "dark" ? "#252525" : "#dddddd"
                           } ${volume}%)`,
                         }}
                         title="Volume"
@@ -744,11 +656,11 @@ const Player = () => {
                           }
                           style={{
                             background: `linear-gradient(to right, ${
-                              theme === "dark" ? "#ddd" : "#252525"
+                              themeAttr === "dark" ? "#ddd" : "#252525"
                             } ${
                               (currentTime / Number(currentSong?.duration)) *
                               100
-                            }%, ${theme === "dark" ? "#252525" : "#dddddd"} ${
+                            }%, ${themeAttr === "dark" ? "#252525" : "#dddddd"} ${
                               (currentTime / Number(currentSong?.duration)) *
                               100
                             }%)`,
@@ -843,7 +755,7 @@ const Player = () => {
                           )}
                         </div>
 
-                        {/* Sleep timer controls */}
+                        {/* SLEEP TIMER CONTROLS */}
                         <div className="flex flex-col items-center mt-1 mb-2">
                           <div className="flex flex-wrap items-center gap-2 text-[0.7rem] opacity-80 justify-center">
                             <span className="uppercase tracking-[0.16em] text-[0.6rem] opacity-70">
@@ -911,10 +823,10 @@ const Player = () => {
                     </div>
                   </div>
 
-                  {/* LOWER CONTENT */}
+                  {/* LOWER CONTENT (no swipe here) */}
                   <div className="flex flex-col overflow-hidden  p-1">
-                    {/* PLAY NEXT */}
-                    {Array.isArray(playNextList) && playNextList.length > 0 && (
+                    {/* PLAY NEXT SECTION */}
+                    {Array.isArray(upNext) && upNext.length > 0 && (
                       <div className="flex flex-col justify-center items-center w-full ">
                         <div className="flex flex-col w-full px-6 lg:px-16">
                           <h2 className="text-xl lg:text-2xl font-semibold">
@@ -934,15 +846,11 @@ const Player = () => {
                             className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
                             ref={queueScrollRef}
                           >
-                            {playNextList.map((qSong, index) => (
+                            {upNext.map((qSong, index) => (
                               <SongGrid
                                 key={qSong.id || index}
                                 {...qSong}
-                                song={
-                                  Array.isArray(song) && song.length > 1
-                                    ? song
-                                    : playNextList
-                                }
+                                song={upNext}
                               />
                             ))}
                           </div>
@@ -954,37 +862,36 @@ const Player = () => {
                       </div>
                     )}
 
-                    {/* YOU MIGHT LIKE */}
-                    {Array.isArray(youMightLikeList) &&
-                      youMightLikeList.length > 0 && (
-                        <div className="flex flex-col justify-center items-center w-full ">
-                          <h2 className="pr-1 m-4 text-xl lg:text-2xl font-semibold w-full ml-[2.5rem] lg:ml-[5.5rem] ">
-                            You Might Like
-                          </h2>
-                          <div className="flex justify-center items-center gap-3 w-full">
-                            <MdOutlineKeyboardArrowLeft
-                              className="text-3xl hover:scale-125 cursor-pointer h-[9rem]   hidden lg:block arrow-btn"
-                              onClick={() => scrollLeft(scrollRef)}
-                            />
-                            <div
-                              className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
-                              ref={scrollRef}
-                            >
-                              {youMightLikeList.map((songItem, index) => (
-                                <SongGrid
-                                  key={songItem.id || index}
-                                  {...songItem}
-                                  song={list}
-                                />
-                              ))}
-                            </div>
-                            <MdOutlineKeyboardArrowRight
-                              className="text-3xl hover:scale-125  cursor-pointer h-[9rem] hidden lg:block arrow-btn"
-                              onClick={() => scrollRight(scrollRef)}
-                            />
+                    {/* YOU MIGHT LIKE SECTION */}
+                    {Array.isArray(suggetions) && suggetions.length > 0 && (
+                      <div className="flex flex-col justify-center items-center w-full ">
+                        <h2 className="pr-1 m-4 text-xl lg:text-2xl font-semibold w-full ml-[2.5rem] lg:ml-[5.5rem] ">
+                          You Might Like
+                        </h2>
+                        <div className="flex justify-center items-center gap-3 w-full">
+                          <MdOutlineKeyboardArrowLeft
+                            className="text-3xl hover:scale-125 cursor-pointer h-[9rem]   hidden lg:block arrow-btn"
+                            onClick={() => scrollLeft(scrollRef)}
+                          />
+                          <div
+                            className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
+                            ref={scrollRef}
+                          >
+                            {suggetions.map((songItem, index) => (
+                              <SongGrid
+                                key={songItem.id || index}
+                                {...songItem}
+                                song={list}
+                              />
+                            ))}
                           </div>
+                          <MdOutlineKeyboardArrowRight
+                            className="text-3xl hover:scale-125  cursor-pointer h-[9rem] hidden lg:block arrow-btn"
+                            onClick={() => scrollRight(scrollRef)}
+                          />
                         </div>
-                      )}
+                      </div>
+                    )}
 
                     {/* ARTISTS */}
                     <div className="flex flex-col pt-3 ">
@@ -1029,7 +936,7 @@ const Player = () => {
                       )}
                     </div>
 
-                    {/* FOOTER */}
+                    {/* MAX PLAYER BOTTOM – logo + fullscreen button */}
                     <div className="flex flex-col items-center justify-center mt-6 mb-4 gap-2">
                       <div className="flex items-center gap-1">
                         <span className="bg"></span>

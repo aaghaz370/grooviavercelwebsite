@@ -35,12 +35,10 @@ const PlaylistDetails = () => {
   const [trendingPlaylists, setTrendingPlaylists] = useState([]);
   const [playlistArtists, setPlaylistArtists] = useState([]);
 
-  // YT Music style: first 50 songs, then "Show more"
+  // YT Music style – pehle 50, baad mein Show more
   const [visibleCount, setVisibleCount] = useState(50);
 
-  // -------------------------------------------
-  // 1) Fetch playlist detail
-  // -------------------------------------------
+  // ------- 1) Playlist fetch -------
   useEffect(() => {
     const fetchDetails = async () => {
       try {
@@ -58,20 +56,24 @@ const PlaylistDetails = () => {
     fetchDetails();
   }, [id]);
 
-  // playlistData shorthand
   const playlistData = details.data || {};
   const songs = playlistData.songs || [];
 
   // playlist cover
   const playlistImage =
-    playlistData.image?.[2]?.url || playlistData.image?.[0]?.url || "/Unknown.png";
+    playlistData.image?.[2]?.url ||
+    playlistData.image?.[1]?.url ||
+    playlistData.image?.[0]?.url ||
+    "/Unknown.png";
 
-  // -------------------------------------------
-  // 2) Liked playlists -> localStorage
-  // -------------------------------------------
+  // ------- 2) Like state -------
   useEffect(() => {
     localStorage.setItem("likedPlaylists", JSON.stringify(likedPlaylists));
   }, [likedPlaylists]);
+
+  const isPlaylistLiked = likedPlaylists.some(
+    (p) => p.id === playlistData.id
+  );
 
   const toggleLikePlaylist = () => {
     setLikedPlaylists((prev) => {
@@ -90,13 +92,7 @@ const PlaylistDetails = () => {
     });
   };
 
-  const isPlaylistLiked = likedPlaylists.some(
-    (p) => p.id === playlistData.id
-  );
-
-  // -------------------------------------------
-  // 3) Artists list (unique)
-  // -------------------------------------------
+  // ------- 3) Artists list -------
   useEffect(() => {
     if (!playlistData || !songs.length) return;
 
@@ -113,9 +109,7 @@ const PlaylistDetails = () => {
     setPlaylistArtists(unique);
   }, [details]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // -------------------------------------------
-  // 4) Similar & Trending playlists
-  // -------------------------------------------
+  // ------- 4) Similar + trending -------
   useEffect(() => {
     if (!playlistData || !playlistData.id) return;
 
@@ -155,9 +149,7 @@ const PlaylistDetails = () => {
     fetchExtra();
   }, [details]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // -------------------------------------------
-  // 5) Duration calculation (YT Music style)
-  // -------------------------------------------
+  // ------- 5) Duration -------
   const { totalSongs, totalDurationLabel } = useMemo(() => {
     const totalSongsLocal = songs.length;
     const totalSeconds = songs.reduce(
@@ -173,28 +165,18 @@ const PlaylistDetails = () => {
     return { totalSongs: totalSongsLocal, totalDurationLabel: label };
   }, [songs]);
 
-  // -------------------------------------------
-  // 6) Play helpers
-  // -------------------------------------------
+  // ------- 6) Play helpers -------
+
+  // Saavn song image safe helper
+  const getSongImage = (song) =>
+    song.image?.[1]?.url ||
+    song.image?.[2]?.url ||
+    song.image?.[0]?.url ||
+    playlistImage;
+
   const playFirstSong = () => {
     if (!songs.length) return;
-    const firstSong = songs[0];
-    const audioSource = firstSong.downloadUrl
-      ? firstSong.downloadUrl[4]?.url || firstSong.downloadUrl[0]?.url
-      : firstSong.audio;
-
-    const { name, duration, image, id, artists } = firstSong;
-
-    // same signature jo tum already use kar rahe the
-    playMusic(
-      audioSource,
-      name,
-      duration,
-      image,
-      id,
-      artists,
-      songs
-    );
+    playSingleSong(songs[0], songs);
   };
 
   const shuffleArray = (arr) => {
@@ -209,27 +191,15 @@ const PlaylistDetails = () => {
   const shufflePlay = () => {
     if (!songs.length) return;
     const shuffled = shuffleArray(songs);
-    const firstSong = shuffled[0];
-    const audioSource = firstSong.downloadUrl
-      ? firstSong.downloadUrl[4]?.url || firstSong.downloadUrl[0]?.url
-      : firstSong.audio;
-
-    const { name, duration, image, id, artists } = firstSong;
-
-    playMusic(
-      audioSource,
-      name,
-      duration,
-      image,
-      id,
-      artists,
-      shuffled
-    );
+    playSingleSong(shuffled[0], shuffled);
   };
 
-  const playSingleSong = (song) => {
+  const playSingleSong = (song, queueOverride) => {
+    const queue = queueOverride || songs;
     const audioSource = song.downloadUrl
-      ? song.downloadUrl[4]?.url || song.downloadUrl[0]?.url
+      ? song.downloadUrl[4]?.url ||
+        song.downloadUrl[3]?.url ||
+        song.downloadUrl[0]?.url
       : song.audio;
 
     const { name, duration, image, id, artists } = song;
@@ -238,20 +208,17 @@ const PlaylistDetails = () => {
       audioSource,
       name,
       duration,
-      image,
+      image || getSongImage(song),
       id,
       artists,
-      songs
+      queue
     );
   };
 
-  // songs to display (first 50, "Show more" for rest)
   const visibleSongs = songs.slice(0, visibleCount);
   const hasMore = songs.length > visibleCount;
 
-  // -------------------------------------------
-  // 7) Loading / error
-  // -------------------------------------------
+  // ------- 7) Loading / error -------
   if (loading) {
     return (
       <div className="flex h-screen w-screen justify-center items-center">
@@ -268,17 +235,14 @@ const PlaylistDetails = () => {
     );
   }
 
-  // -------------------------------------------
-  // 8) UI
-  // -------------------------------------------
+  // ------- 8) UI -------
   return (
     <>
       <Navbar />
 
       <div className="flex flex-col mt-[7.5rem] lg:mt-[5.5rem] px-[1.6rem] lg:px-[3rem] pb-32">
-        {/* HEADER – YT Music style */}
+        {/* HEADER – clean */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
-          {/* left: cover + meta */}
           <div className="flex items-start gap-4">
             <div className="h-[7rem] w-[7rem] lg:h-[8rem] lg:w-[8rem] rounded-2xl overflow-hidden bg-white/5 shadow-xl shadow-black/40 DetailImg">
               <img
@@ -289,8 +253,9 @@ const PlaylistDetails = () => {
             </div>
 
             <div className="flex flex-col gap-1">
+              {/* Saavn text hata diya, normal chip */}
               <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
-                Saavn playlist
+                Playlist
               </span>
               <h1 className="text-[1.6rem] lg:text-[1.9rem] font-semibold leading-tight">
                 {playlistData.name}
@@ -307,7 +272,6 @@ const PlaylistDetails = () => {
             </div>
           </div>
 
-          {/* right actions */}
           <div className="flex flex-col items-end gap-3">
             <div className="flex items-center gap-2">
               {songs.length > 0 && (
@@ -343,7 +307,7 @@ const PlaylistDetails = () => {
           </div>
         </div>
 
-        {/* SONG LIST – clean, numbered, minimal hover */}
+        {/* SONG LIST – YT Music style: cover + title + artists · duration */}
         <div className="mt-2 flex flex-col">
           {songs.length === 0 && (
             <div className="text-xs opacity-70">
@@ -352,50 +316,43 @@ const PlaylistDetails = () => {
           )}
 
           {visibleSongs.map((song, idx) => {
-            const trackNumber = idx + 1;
             const artists =
               song.artists?.primary?.map((a) => a.name).join(", ") || "";
+            const songImg = getSongImage(song);
 
             return (
-              <div
+              <button
                 key={song.id || `${song.name}-${idx}`}
-                className="flex items-center justify-between px-2 py-1.5 rounded-xl transition-colors"
+                className="flex items-center justify-between w-full px-1 py-2 rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors text-left"
                 onClick={() => playSingleSong(song)}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {/* track index */}
-                  <span className="w-6 text-[0.7rem] text-right opacity-60">
-                    {trackNumber}
-                  </span>
-
                   <img
-                    src={song.image || playlistImage}
+                    src={songImg}
                     alt={song.name}
-                    className="h-9 w-9 rounded-md object-cover"
+                    className="h-10 w-10 rounded-md object-cover"
                   />
-
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-medium truncate">
                       {song.name}
                     </span>
-                    <span className="text-[0.7rem] opacity-70 truncate">
+                    <span className="text-[0.75rem] opacity-70 truncate">
                       {artists}
                     </span>
                   </div>
                 </div>
 
-                <span className="text-[0.7rem] opacity-70 ml-2">
+                <span className="ml-3 text-[0.75rem] opacity-70">
                   {song.duration
                     ? new Date(song.duration * 1000)
                         .toISOString()
                         .substring(14, 19)
                     : ""}
                 </span>
-              </div>
+              </button>
             );
           })}
 
-          {/* Show more button like YT Music */}
           {hasMore && (
             <div className="mt-3 flex justify-center">
               <button
@@ -408,7 +365,7 @@ const PlaylistDetails = () => {
           )}
         </div>
 
-        {/* Similar Playlists */}
+        {/* Similar playlists */}
         {similarPlaylists.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold mb-2">
@@ -418,7 +375,7 @@ const PlaylistDetails = () => {
           </div>
         )}
 
-        {/* Trending Playlists */}
+        {/* Trending playlists */}
         {trendingPlaylists.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold mb-2">
@@ -428,7 +385,7 @@ const PlaylistDetails = () => {
           </div>
         )}
 
-        {/* Artists in this playlist */}
+        {/* Artists */}
         {playlistArtists.length > 0 && (
           <div className="mt-8 mb-6">
             <h2 className="text-sm font-semibold mb-2">

@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import { Link, useLocation } from "react-router-dom";
 
 const Navbar = () => {
@@ -8,9 +9,16 @@ const Navbar = () => {
   return (
     <nav className="navbar fixed top-0 z-20 w-full h-[4.5rem] px-4 lg:px-6 flex items-center justify-between">
       {/* LEFT: Logo */}
-      <Link to="/" className="flex items-center">
-        <span className="bg"></span>
-        <div>
+      <Link to="/" className="flex items-center gap-2">
+        {/* Neon G logo */}
+        <img
+          src="/groovia-logo.svg"
+          alt="Groovia"
+          className="w-9 h-9 lg:w-10 lg:h-10 rounded-full shadow-[0_0_18px_rgba(208,64,255,0.9)]"
+        />
+
+        {/* Wordmark */}
+        <div className="flex items-baseline gap-[2px]">
           <span className="Musi font-extrabold text-2xl lg:text-3xl">
             Groo
           </span>

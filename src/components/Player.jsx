@@ -359,23 +359,66 @@ const Player = () => {
     { label: "60 min", value: 60 },
   ];
 
-  // ⭐ FIXED: Calculate Play Next queue safely (ignore null items)
+  // ⭐ FIXED: Calculate Play Next queue safely (ignore null items + fallback)
   useEffect(() => {
     if (!currentSong || !Array.isArray(song) || !song.length) {
       setUpNext([]);
       return;
     }
 
-    // remove null / undefined / items without id
-    const safeList = song.filter((s) => s && s.id);
+    // null / undefined / bina id waale sab hata do
+    const safeList = song.filter(
+      (s) => s && (s.id || s._id || s.songid || s.songId)
+    );
 
-    const idx = safeList.findIndex((s) => s.id === currentSong.id);
-    if (idx === -1) {
+    if (!safeList.length) {
       setUpNext([]);
       return;
     }
 
-    const nextItems = safeList.slice(idx + 1, idx + 11);
+    let idx = -1;
+
+    // 1) try by reference
+    idx = safeList.indexOf(currentSong);
+
+    // 2) try by id (alag-alag key support)
+    const currentId =
+      currentSong.id ||
+      currentSong._id ||
+      currentSong.songid ||
+      currentSong.songId ||
+      null;
+
+    if (idx === -1 && currentId) {
+      idx = safeList.findIndex((s) => {
+        const sid = s.id || s._id || s.songid || s.songId || null;
+        return sid === currentId;
+      });
+    }
+
+    // 3) last fallback – audio URL match
+    if (idx === -1 && currentSong.audio?.currentSrc) {
+      idx = safeList.findIndex(
+        (s) => s.audio?.currentSrc === currentSong.audio.currentSrc
+      );
+    }
+
+    let nextItems;
+
+    if (idx === -1) {
+      // currentSong list me locate nahi hua, phir bhi queue dikhane ke liye
+      // simply first 10 songs dikha do
+      nextItems = safeList.slice(0, 10);
+    } else {
+      // current ke baad wale 10
+      nextItems = safeList.slice(idx + 1, idx + 11);
+
+      // agar current last item hai to starting se queue bana do
+      if (!nextItems.length && safeList.length > 1) {
+        nextItems = safeList.slice(0, Math.min(10, safeList.length));
+      }
+    }
+
     setUpNext(nextItems);
   }, [currentSong, song]);
 

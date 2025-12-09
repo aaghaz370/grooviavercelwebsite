@@ -70,7 +70,7 @@ const Footer = () => {
             {/* 🔥 NEW: SVG logo same as navbar */}
             <div className="flex items-center gap-3">
               <img
-                src="/groovia-logo.svg" // public/groovia-logo.svg
+                src="/1765308468557~4.jpg" // public/groovia-logo.svg
                 alt="Groovia"
                 className="w-10 h-10 lg:w-11 lg:h-11 rounded-full shadow-[0_0_18px_rgba(208,64,255,0.9)]"
               />

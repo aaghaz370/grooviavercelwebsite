@@ -359,24 +359,19 @@ const Player = () => {
     { label: "60 min", value: 60 },
   ];
 
-   // ⭐ SUPER SIMPLE: Play Next = current active list ke next tracks (fallback)
+  // ⭐ Play Next calculation – simple queue based on context.song
   useEffect(() => {
-    // agar list hi nahi hai to kuch mat dikhao
     if (!Array.isArray(song) || song.length === 0) {
       setUpNext([]);
       return;
     }
 
-    // null / undefined hata do, id na ho tab bhi chalega
     const safeList = song.filter(Boolean);
-
-    if (safeList.length === 0) {
+    if (!safeList.length) {
       setUpNext([]);
       return;
     }
 
-    // abhi ke liye simple logic:
-    // 1) currentSong ko list me dhundho (id se)
     let idx = -1;
 
     if (currentSong) {
@@ -398,28 +393,22 @@ const Player = () => {
     let queue = [];
 
     if (idx === -1) {
-      // currentSong nahi mila? koi baat nahi,
-      // bas list ke first 10 songs ko Play Next dikha do.
+      // currentSong nahi mila? bas first 10 dikha do
       queue = safeList.slice(0, 10);
     } else {
-      // current ke baad wale songs
       const after = safeList.slice(idx + 1);
-      // agar uske baad kuch nahi hai to wrap karke start se lo
       const wrapped =
         after.length > 0
           ? after
           : safeList.length > 1
           ? safeList.slice(0, safeList.length - 1)
           : [];
-
       queue = wrapped.slice(0, 10);
     }
 
     setUpNext(queue);
   }, [currentSong, song]);
 
-
-  
   // ⭐ Custom sleep timer apply
   const handleCustomSleepApply = () => {
     const hrs = parseFloat(customHours);
@@ -440,6 +429,14 @@ const Player = () => {
     if (h) return `${h} hr`;
     return `${m} min`;
   };
+
+  // ⭐ FINAL Play Next source – pehle queue, warna suggestions ka fallback
+  const playNextList =
+    Array.isArray(upNext) && upNext.length > 0
+      ? upNext
+      : Array.isArray(suggetions)
+      ? suggetions.slice(0, 10)
+      : [];
 
   return (
     <div
@@ -847,7 +844,7 @@ const Player = () => {
                                 step="0.25"
                                 value={customHours}
                                 onChange={(e) => setCustomHours(e.target.value)}
-                                className="w-16 px-2 py-1 rounded-lg bg_black/40 bg-black/40 border border-white/20 text-center text-[0.7rem] outline-none"
+                                className="w-16 px-2 py-1 rounded-lg bg-black/40 border border-white/20 text-center text-[0.7rem] outline-none"
                                 placeholder="1.0"
                               />
                               <span>hr</span>
@@ -875,14 +872,14 @@ const Player = () => {
                   {/* LOWER CONTENT (no swipe here) */}
                   <div className="flex flex-col overflow-hidden  p-1">
                     {/* ⭐ PLAY NEXT / QUEUE SECTION */}
-                    {Array.isArray(upNext) && upNext.length > 0 && (
+                    {Array.isArray(playNextList) && playNextList.length > 0 && (
                       <div className="flex flex-col justify-center items-center w-full ">
                         <div className="flex flex-col w-full px-6 lg:px-16">
                           <h2 className="text-xl lg:text-2xl font-semibold">
                             Play Next
                           </h2>
                           <p className="text-[0.7rem] opacity-70 mt-1">
-                            Upcoming tracks in your queue • Tap any song to jump
+                            Upcoming tracks for you • Tap any song to jump
                             instantly.
                           </p>
                         </div>
@@ -895,11 +892,11 @@ const Player = () => {
                             className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
                             ref={queueScrollRef}
                           >
-                            {upNext.map((qSong, index) => (
+                            {playNextList.map((qSong, index) => (
                               <SongGrid
                                 key={qSong.id || index}
                                 {...qSong}
-                                song={song}
+                                song={playNextList}
                               />
                             ))}
                           </div>

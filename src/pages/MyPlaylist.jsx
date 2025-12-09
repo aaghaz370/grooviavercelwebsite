@@ -1,5 +1,5 @@
 // src/pages/MyPlaylist.jsx
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
@@ -33,6 +33,9 @@ const MyPlaylist = () => {
   // multi-select delete
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedSongIds, setSelectedSongIds] = useState([]);
+
+  // YT Music style: show first 50, then "Show more"
+  const [visibleCount, setVisibleCount] = useState(50);
 
   // load playlists + liked songs
   useEffect(() => {
@@ -202,6 +205,22 @@ const MyPlaylist = () => {
     navigate("/my-music");
   };
 
+  // total duration + pretty format (YT Music style)
+  const { totalDurationLabel } = useMemo(() => {
+    if (!playlist) return { totalDurationLabel: "" };
+    const totalSeconds = playlist.songs.reduce(
+      (sum, s) => sum + (s.duration || 0),
+      0
+    );
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    let label = "";
+    if (hours > 0) label += `${hours} hr `;
+    label += `${minutes} min`;
+    return { totalDurationLabel: label };
+  }, [playlist]);
+
   if (!playlist) {
     return (
       <>
@@ -224,59 +243,78 @@ const MyPlaylist = () => {
   const cover = playlist.songs?.[0]?.image || "/Unknown.png";
   const otherPlaylists = allPlaylists.filter((pl) => pl.id !== playlist.id);
 
+  // songs to render (first 50, then show more)
+  const visibleSongs = playlist.songs.slice(0, visibleCount);
+  const hasMore = playlist.songs.length > visibleCount;
+
   return (
     <>
       <Navbar />
 
-      <div className="min-h-[calc(100vh-6rem)] flex flex-col pb-40 px-[1.6rem] lg:px-[3rem] mt-[8.5rem] lg:mt-[6rem]">
-        {/* Header card */}
-        <div className="card rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="h-[4rem] w-[4rem] lg:h-[4.5rem] lg:w-[4.5rem] rounded-xl overflow-hidden">
-                <img
-                  src={cover}
-                  alt={playlist.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[0.65rem] uppercase tracking-[0.16em] opacity-70">
-                  Custom playlist
-                </span>
-                <h1 className="text-[1.3rem] lg:text-[1.5rem] font-semibold">
-                  {playlist.name}
-                </h1>
-                <span className="text-[0.75rem] opacity-70">
-                  {playlist.songs.length} song
-                  {playlist.songs.length > 1 ? "s" : ""} • Tap a song to play
-                </span>
-              </div>
+      <div className="min-h-[calc(100vh-6rem)] flex flex-col pb-40 px-[1.6rem] lg:px-[3rem] mt-[7.5rem] lg:mt-[5.5rem]">
+        {/* HEADER – big card like YT Music */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-6">
+          {/* cover + meta */}
+          <div className="flex items-start gap-4">
+            <div className="h-[5rem] w-[5rem] lg:h-[6rem] lg:w-[6rem] rounded-xl overflow-hidden shadow-xl shadow-black/40 bg-white/5">
+              <img
+                src={cover}
+                alt={playlist.name}
+                className="h-full w-full object-cover"
+              />
             </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
+                Custom playlist
+              </span>
+              <h1 className="text-[1.5rem] lg:text-[1.9rem] font-semibold leading-tight">
+                {playlist.name}
+              </h1>
+              <span className="text-[0.8rem] opacity-70">
+                {playlist.songs.length} song
+                {playlist.songs.length > 1 ? "s" : ""} • {totalDurationLabel}
+              </span>
+              <span className="text-[0.7rem] opacity-60">
+                Tap a song to play · Long press / three dots for options
+              </span>
+            </div>
+          </div>
 
+          {/* right actions */}
+          <div className="flex flex-col items-end gap-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate(-1)}
-                className="hidden sm:inline-flex text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+                className="hidden sm:inline-flex text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
               >
                 Back
               </button>
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
+                className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
               >
                 Add songs
               </button>
               {playlist.songs.length > 0 && (
-                <button
-                  onClick={handlePlayAll}
-                  className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90 flex items-center gap-1"
-                >
-                  <FaPlay className="text-[0.7rem]" />
-                  Play
-                </button>
+                <>
+                  <button
+                    onClick={handlePlayAll}
+                    className="text-xs px-3.5 py-1.5 rounded-full bg-white text-black font-semibold hover:opacity-90 flex items-center gap-1"
+                  >
+                    <FaPlay className="text-[0.7rem]" />
+                    Play
+                  </button>
+                  <button
+                    onClick={handleShufflePlay}
+                    className="text-xs px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15 flex items-center gap-1"
+                  >
+                    <PiShuffleBold className="text-[0.9rem]" />
+                    Shuffle
+                  </button>
+                </>
               )}
-              {/* header 3-dot menu */}
+
+              {/* header menu */}
               <div className="relative">
                 <button
                   onClick={() => {
@@ -290,12 +328,11 @@ const MyPlaylist = () => {
 
                 {headerMenuOpen && (
                   <>
-                    {/* overlay for closing + background block */}
                     <div
                       className="fixed inset-0 z-10"
                       onClick={() => setHeaderMenuOpen(false)}
                     />
-                    <div className="absolute right-0 top-9 w-44 bg-[#020617] rounded-xl border border-white/10 shadow-xl text-xs z-20">
+                    <div className="absolute right-0 top-9 w-48 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-20 overflow-hidden">
                       <button
                         className="w-full text-left px-3 py-2 hover:bg-white/10 flex items-center gap-2"
                         onClick={handlePlayAll}
@@ -336,31 +373,32 @@ const MyPlaylist = () => {
                 )}
               </div>
             </div>
-          </div>
 
-          {/* small back button for mobile */}
-          <button
-            onClick={() => navigate(-1)}
-            className="sm:hidden self-start text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
-          >
-            Back
-          </button>
+            {/* mobile back button */}
+            <button
+              onClick={() => navigate(-1)}
+              className="sm:hidden self-end text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
+            >
+              Back
+            </button>
+          </div>
         </div>
 
-        {/* SONG LIST */}
-        <div className="mt-4 flex flex-col gap-1">
+        {/* SONG LIST – clean like YT Music */}
+        <div className="mt-2 flex flex-col">
           {playlist.songs.length === 0 && (
             <div className="text-xs opacity-70">
               No songs yet. Use “Add songs” to add from liked songs.
             </div>
           )}
 
-          {playlist.songs.map((song) => {
+          {visibleSongs.map((song, idx) => {
             const isSelected = selectedSongIds.includes(song.id);
+            const trackNumber = idx + 1;
             return (
               <div
                 key={song.id}
-                className="flex items-center justify-between px-2 py-2 rounded-xl hover:bg-white/5"
+                className="flex items-center justify-between px-2 py-1.5 rounded-xl transition-colors"
               >
                 <div
                   className="flex items-center gap-3 flex-1 min-w-0"
@@ -370,25 +408,31 @@ const MyPlaylist = () => {
                       : playTrack(song)
                   }
                 >
+                  {/* Index number */}
+                  <span className="w-6 text-[0.7rem] text-right opacity-60">
+                    {trackNumber}
+                  </span>
+
                   {multiSelectMode && (
                     <input
                       type="checkbox"
                       className="accent-white"
                       checked={isSelected}
                       onChange={(e) => {
-                        e.stopPropagation(); // double toggle se bachne ke liye
+                        e.stopPropagation();
                         toggleSelectSongForMulti(song.id);
                       }}
                       onClick={(e) => e.stopPropagation()}
                     />
                   )}
+
                   <img
                     src={song.image}
                     alt={song.name}
                     className="h-9 w-9 rounded-md object-cover"
                   />
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-semibold truncate">
+                    <span className="text-sm font-medium truncate">
                       {song.name}
                     </span>
                     <span className="text-[0.7rem] opacity-70 truncate">
@@ -399,6 +443,7 @@ const MyPlaylist = () => {
                   </div>
                 </div>
 
+                {/* right side: duration + menu */}
                 {!multiSelectMode && (
                   <div className="flex items-center gap-2 ml-2 relative">
                     <span className="text-[0.7rem] opacity-70">
@@ -421,12 +466,11 @@ const MyPlaylist = () => {
 
                     {openSongMenuId === song.id && (
                       <>
-                        {/* overlay for song menu */}
                         <div
                           className="fixed inset-0 z-10"
                           onClick={() => setOpenSongMenuId(null)}
                         />
-                        <div className="absolute right-0 top-8 w-36 bg-[#020617] rounded-xl border border-white/10 shadow-xl text-xs z-20">
+                        <div className="absolute right-0 top-8 w-40 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-20 overflow-hidden">
                           <button
                             className="w-full text-left px-3 py-2 hover:bg-white/10"
                             onClick={() => {
@@ -460,6 +504,18 @@ const MyPlaylist = () => {
               </div>
             );
           })}
+
+          {/* Show more button (YT Music style) */}
+          {hasMore && (
+            <div className="mt-3 flex justify-center">
+              <button
+                onClick={() => setVisibleCount((c) => c + 50)}
+                className="px-4 py-2 text-xs rounded-full bg-white/5 border border-white/15 hover:bg-white/10"
+              >
+                Show more
+              </button>
+            </div>
+          )}
         </div>
 
         {/* MULTI-SELECT bottom bar */}
@@ -488,15 +544,17 @@ const MyPlaylist = () => {
           </div>
         )}
 
-        {/* Other playlists */}
+        {/* Related / other playlists (YT Music style "Related") */}
         {otherPlaylists.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-sm font-semibold mb-2">Other playlists</h2>
-            <div className="flex flex-wrap gap-3">
+          <div className="mt-8">
+            <h2 className="text-sm font-semibold mb-2">
+              Related playlists
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 scroll-hide">
               {otherPlaylists.map((pl) => (
                 <div
                   key={pl.id}
-                  className="w-[47%] sm:w-[31%] md:w-[23%] lg:w-[18%] min-w-[130px] flex flex-col gap-1 cursor-pointer"
+                  className="min-w-[150px] max-w-[180px] flex flex-col gap-1 cursor-pointer"
                   onClick={() => navigate(`/my-playlists/${pl.id}`)}
                 >
                   <div className="aspect-square rounded-xl overflow-hidden bg-white/5">
@@ -506,10 +564,10 @@ const MyPlaylist = () => {
                       className="h-full w-full object-cover"
                     />
                   </div>
-                  <span className="text-sm font-semibold truncate">
+                  <span className="text-sm font-medium truncate">
                     {pl.name}
                   </span>
-                  <span className="text-xs opacity-70">
+                  <span className="text-xs opacity-70 truncate">
                     {pl.songs.length} song
                     {pl.songs.length > 1 ? "s" : ""}
                   </span>

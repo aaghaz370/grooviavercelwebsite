@@ -12,7 +12,7 @@ const Navbar = () => {
       <Link to="/" className="flex items-center gap-2">
         {/* Neon G logo */}
         <img
-          src="/groovia-logo.svg"
+          src="public/1765308468557~2.jpg"
           alt="Groovia"
           className="w-9 h-9 lg:w-10 lg:h-10 rounded-full shadow-[0_0_18px_rgba(208,64,255,0.9)]"
         />

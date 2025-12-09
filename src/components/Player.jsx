@@ -359,20 +359,23 @@ const Player = () => {
     { label: "60 min", value: 60 },
   ];
 
-  // ⭐ Calculate Play Next queue from currentSong + song[]
+  // ⭐ FIXED: Calculate Play Next queue safely (ignore null items)
   useEffect(() => {
     if (!currentSong || !Array.isArray(song) || !song.length) {
       setUpNext([]);
       return;
     }
 
-    const idx = song.findIndex((s) => s.id === currentSong.id);
+    // remove null / undefined / items without id
+    const safeList = song.filter((s) => s && s.id);
+
+    const idx = safeList.findIndex((s) => s.id === currentSong.id);
     if (idx === -1) {
       setUpNext([]);
       return;
     }
 
-    const nextItems = song.slice(idx + 1, idx + 11);
+    const nextItems = safeList.slice(idx + 1, idx + 11);
     setUpNext(nextItems);
   }, [currentSong, song]);
 
@@ -803,7 +806,7 @@ const Player = () => {
                                 step="0.25"
                                 value={customHours}
                                 onChange={(e) => setCustomHours(e.target.value)}
-                                className="w-16 px-2 py-1 rounded-lg bg-black/40 border border-white/20 text-center text-[0.7rem] outline-none"
+                                className="w-16 px-2 py-1 rounded-lg bg_black/40 bg-black/40 border border-white/20 text-center text-[0.7rem] outline-none"
                                 placeholder="1.0"
                               />
                               <span>hr</span>

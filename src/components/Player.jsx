@@ -32,7 +32,6 @@ const Player = () => {
     repeatMode,
     toggleRepeatMode,
     downloadSong,
-    // 💤 SLEEP TIMER from context
     sleepTimerMinutes,
     setSleepTimer,
   } = useContext(MusicContext);
@@ -51,14 +50,14 @@ const Player = () => {
     return JSON.parse(localStorage.getItem("likedSongs")) || [];
   });
 
-  // ⭐ NEW: queue / play-next
+  // queue / Play Next
   const [upNext, setUpNext] = useState([]);
 
-  // ⭐ NEW: custom sleep timer UI state
+  // custom sleep timer
   const [showCustomTimer, setShowCustomTimer] = useState(false);
   const [customHours, setCustomHours] = useState("");
 
-  // ---- FULLSCREEN STATE (for home footer hide/show) ----
+  // fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -82,14 +81,12 @@ const Player = () => {
       console.error("Fullscreen error", err);
     }
   };
-  // ------------------------------------------------------
 
   const inputRef = useRef();
 
-  // You Might Like horizontal scroll
+  // You Might Like scroll
   const scrollRef = useRef(null);
-
-  // ⭐ NEW: Play Next horizontal scroll
+  // Play Next scroll
   const queueScrollRef = useRef(null);
 
   const scrollLeft = (ref) => {
@@ -103,7 +100,7 @@ const Player = () => {
     }
   };
 
-  // ----- SWIPE FOR NEXT/PREV (sirf top player area) -----
+  // swipe for prev/next
   const swipeStartX = useRef(null);
   const swipeStartY = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -143,7 +140,6 @@ const Player = () => {
 
     if (Math.abs(delta) > threshold) {
       const goingNext = delta < 0;
-
       setSwipeOffset(goingNext ? -width : width);
 
       setTimeout(() => {
@@ -161,8 +157,8 @@ const Player = () => {
     swipeStartX.current = null;
     swipeStartY.current = null;
   };
-  // ----- END SWIPE -----
 
+  // progress bar
   useEffect(() => {
     if (!currentSong) return;
 
@@ -193,7 +189,7 @@ const Player = () => {
     ? currentSong.artists.primary.map((artist) => artist.name).join(", ")
     : "Unknown Artist";
 
-  // song -> album detail
+  // album detail
   useEffect(() => {
     const albumDetail = async () => {
       const result = await getSongById(currentSong.id);
@@ -298,6 +294,7 @@ const Player = () => {
 
   const name = currentSong?.name || "Unknown Title";
 
+  // media session
   useEffect(() => {
     if (!currentSong) return;
 
@@ -351,7 +348,7 @@ const Player = () => {
   const albumId = detail?.album?.id;
   const albumName = detail?.album?.name || "";
 
-  // ⭐ Sleep timer preset buttons
+  // sleep timer options
   const sleepOptions = [
     { label: "Off", value: null },
     { label: "15 min", value: 15 },
@@ -359,9 +356,47 @@ const Player = () => {
     { label: "60 min", value: 60 },
   ];
 
-  // ⭐ Play Next calculation – simple queue based on context.song
+  // --- helper: compare two songs ---
+  const isSameTrack = (a, b) => {
+    if (!a || !b) return false;
+    const aid =
+      a.id || a._id || a.songid || a.songId || a.song_id || a.trackId;
+    const bid =
+      b.id || b._id || b.songid || b.songId || b.song_id || b.trackId;
+
+    if (aid && bid && aid === bid) return true;
+
+    const aSrc = a.audio?.currentSrc || a.audioUrl || a.url;
+    const bSrc = b.audio?.currentSrc || b.audioUrl || b.url;
+    if (aSrc && bSrc && aSrc === bSrc) return true;
+
+    const aName = (a.name || a.title || "").trim().toLowerCase();
+    const bName = (b.name || b.title || "").trim().toLowerCase();
+
+    const getArtistString = (s) =>
+      (s?.artists?.primary || s?.primary_artists || [])
+        .map((ar) => ar.name)
+        .join(",")
+        .trim()
+        .toLowerCase();
+
+    const aArt = getArtistString(a);
+    const bArt = getArtistString(b);
+
+    const aDur = Number(a.duration || 0);
+    const bDur = Number(b.duration || 0);
+
+    if (aName && bName && aName === bName && aArt && bArt && aArt === bArt) {
+      if (!aDur || !bDur) return true;
+      if (Math.abs(aDur - bDur) <= 3) return true; // 3 sec diff allow
+    }
+
+    return false;
+  };
+
+  // --- Play Next queue from context.song ---
   useEffect(() => {
-    if (!Array.isArray(song) || song.length === 0) {
+    if (!Array.isArray(song) || song.length <= 1) {
       setUpNext([]);
       return;
     }
@@ -375,41 +410,26 @@ const Player = () => {
     let idx = -1;
 
     if (currentSong) {
-      const currentId =
-        currentSong.id ||
-        currentSong._id ||
-        currentSong.songid ||
-        currentSong.songId ||
-        null;
-
-      if (currentId) {
-        idx = safeList.findIndex((s) => {
-          const sid = s.id || s._id || s.songid || s.songId || null;
-          return sid === currentId;
-        });
-      }
+      idx = safeList.findIndex((s) => isSameTrack(currentSong, s));
     }
 
     let queue = [];
 
     if (idx === -1) {
-      // currentSong nahi mila? bas first 10 dikha do
-      queue = safeList.slice(0, 10);
+      // currentSong list me locate nahi ho raha
+      // -> current ke similar sab remove karke first 10 dikhao
+      queue = safeList.filter((s) => !isSameTrack(currentSong, s)).slice(0, 10);
     } else {
       const after = safeList.slice(idx + 1);
-      const wrapped =
-        after.length > 0
-          ? after
-          : safeList.length > 1
-          ? safeList.slice(0, safeList.length - 1)
-          : [];
-      queue = wrapped.slice(0, 10);
+      const before = safeList.slice(0, idx);
+      const ordered = [...after, ...before]; // wrap around
+      queue = ordered.filter((s) => !isSameTrack(currentSong, s)).slice(0, 10);
     }
 
     setUpNext(queue);
   }, [currentSong, song]);
 
-  // ⭐ Custom sleep timer apply
+  // custom sleep timer apply
   const handleCustomSleepApply = () => {
     const hrs = parseFloat(customHours);
     if (!hrs || hrs <= 0) return;
@@ -430,13 +450,35 @@ const Player = () => {
     return `${m} min`;
   };
 
-  // ⭐ FINAL Play Next source – pehle queue, warna suggestions ka fallback
+  // ---- FINAL lists for sections ----
+
+  // PlayNext:
+  //  - Prefer queue from context.song
+  //  - If queue empty, use suggestions first 10
+  const playNextFromQueue =
+    Array.isArray(upNext) && upNext.length > 0 ? upNext : [];
+
+  const playNextFromSuggestions =
+    (!playNextFromQueue.length && Array.isArray(suggetions)) ?
+      suggetions.slice(0, 10) : [];
+
   const playNextList =
-    Array.isArray(upNext) && upNext.length > 0
-      ? upNext
-      : Array.isArray(suggetions)
-      ? suggetions.slice(0, 10)
-      : [];
+    playNextFromQueue.length > 0 ? playNextFromQueue : playNextFromSuggestions;
+
+  // You Might Like:
+  //  - If queue available -> full suggestions
+  //  - If suggestions se hi PlayNext aya -> baaki suggestions (no duplicate)
+  let youMightLikeList = [];
+  if (Array.isArray(suggetions) && suggetions.length > 0) {
+    if (playNextFromQueue.length > 0) {
+      youMightLikeList = suggetions;
+    } else {
+      const offset = playNextFromSuggestions.length;
+      youMightLikeList = suggetions.slice(offset);
+    }
+  }
+
+  const theme = document.documentElement.getAttribute("data-theme");
 
   return (
     <div
@@ -801,7 +843,7 @@ const Player = () => {
                           )}
                         </div>
 
-                        {/* 💤 SLEEP TIMER CONTROLS (MAX VIEW) */}
+                        {/* Sleep timer controls */}
                         <div className="flex flex-col items-center mt-1 mb-2">
                           <div className="flex flex-wrap items-center gap-2 text-[0.7rem] opacity-80 justify-center">
                             <span className="uppercase tracking-[0.16em] text-[0.6rem] opacity-70">
@@ -869,9 +911,9 @@ const Player = () => {
                     </div>
                   </div>
 
-                  {/* LOWER CONTENT (no swipe here) */}
+                  {/* LOWER CONTENT */}
                   <div className="flex flex-col overflow-hidden  p-1">
-                    {/* ⭐ PLAY NEXT / QUEUE SECTION */}
+                    {/* PLAY NEXT */}
                     {Array.isArray(playNextList) && playNextList.length > 0 && (
                       <div className="flex flex-col justify-center items-center w-full ">
                         <div className="flex flex-col w-full px-6 lg:px-16">
@@ -896,7 +938,11 @@ const Player = () => {
                               <SongGrid
                                 key={qSong.id || index}
                                 {...qSong}
-                                song={playNextList}
+                                song={
+                                  Array.isArray(song) && song.length > 1
+                                    ? song
+                                    : playNextList
+                                }
                               />
                             ))}
                           </div>
@@ -908,8 +954,9 @@ const Player = () => {
                       </div>
                     )}
 
-                    <div>
-                      {Array.isArray(suggetions) && suggetions.length > 0 && (
+                    {/* YOU MIGHT LIKE */}
+                    {Array.isArray(youMightLikeList) &&
+                      youMightLikeList.length > 0 && (
                         <div className="flex flex-col justify-center items-center w-full ">
                           <h2 className="pr-1 m-4 text-xl lg:text-2xl font-semibold w-full ml-[2.5rem] lg:ml-[5.5rem] ">
                             You Might Like
@@ -923,7 +970,7 @@ const Player = () => {
                               className="grid grid-rows-2 lg:grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-[.35rem] w-full  px-3 lg:px-0 scroll-smooth"
                               ref={scrollRef}
                             >
-                              {suggetions.map((songItem, index) => (
+                              {youMightLikeList.map((songItem, index) => (
                                 <SongGrid
                                   key={songItem.id || index}
                                   {...songItem}
@@ -938,7 +985,8 @@ const Player = () => {
                           </div>
                         </div>
                       )}
-                    </div>
+
+                    {/* ARTISTS */}
                     <div className="flex flex-col pt-3 ">
                       <h2 className="pr-1 text-xl lg:text-2xl font-semibold  w-full ml-[2rem] lg:ml-[3.5rem] lg:m-3 ">
                         Artists
@@ -953,6 +1001,7 @@ const Player = () => {
                       </div>
                     </div>
 
+                    {/* FROM ALBUM */}
                     <div className="flex flex-col lg:flex-row gap-[2rem] ">
                       {albumId && (
                         <div className="flex flex-col ">
@@ -980,7 +1029,7 @@ const Player = () => {
                       )}
                     </div>
 
-                    {/* MAX PLAYER BOTTOM – logo + fullscreen button */}
+                    {/* FOOTER */}
                     <div className="flex flex-col items-center justify-center mt-6 mb-4 gap-2">
                       <div className="flex items-center gap-1">
                         <span className="bg"></span>

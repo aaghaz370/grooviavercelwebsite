@@ -7,9 +7,27 @@ import Navigator from "../components/Navigator";
 import Footer from "../components/footer";
 import AlbumSlider from "../components/Sliders/AlbumSlider";
 import SongGrid from "../components/SongGrid";
-import { fetchArtistByID, fetchAlbumByID } from "../../fetch";
+import { fetchArtistByID, fetchAlbumByID, getSongbyQuery } from "../../fetch";
 import MusicContext from "../context/MusicContext";
 import { MdOutlineKeyboardArrowLeft, MdOutlineKeyboardArrowRight } from "react-icons/md";
+
+/** Small helper to remove HTML entities / noisy tokens.
+ *  Use `he.decode` if you add `he` dependency; fallback to simple replaces below.
+ */
+const sanitizeTitle = (raw = "") => {
+  if (!raw) return "";
+  let s = raw;
+  // common HTML entities
+  s = s.replace(/&quot;/g, '"');
+  s = s.replace(/&amp;/g, "&");
+  s = s.replace(/&lt;/g, "<");
+  s = s.replace(/&gt;/g, ">");
+  // remove (From "X") noisy tokens like the playlist code
+  s = s.replace(/\(From\s*["'“”](.*?)["'“”]\)/gi, "($1)");
+  s = s.replace(/From\s*["'“”](.*?)["'“”]/gi, "($1)");
+  s = s.replace(/&quot;/gi, '"');
+  return s.trim();
+};
 
 const ArtistsDetails = () => {
   const { id } = useParams();
@@ -37,11 +55,38 @@ const ArtistsDetails = () => {
 
         setArtistData(artist || null);
 
-        setTopSongs(artist?.topSongs || []);
+        const receivedTopSongs = artist?.topSongs || [];
+        setTopSongs(receivedTopSongs);
+
         setTopAlbums(artist?.topAlbums?.albums || artist?.topAlbums || []);
         setSingles(artist?.singles || []);
-        // debug: check how many songs we actually received
-        console.log("topSongs length:", (artist?.topSongs || []).length);
+
+        console.log("artist topSongs length (initial):", receivedTopSongs.length);
+
+        // If API returned only a few songs (<= visibleCount) attempt fallback search by artist name
+        if ((receivedTopSongs.length || 0) <= visibleCount) {
+          try {
+            const artistName = artist?.name || "";
+            if (artistName) {
+              // Use your existing search endpoint to try and get more songs for this artist
+              const searchRes = await getSongbyQuery(encodeURIComponent(artistName), 100);
+              const results = searchRes?.data?.results || searchRes?.results || [];
+
+              // Merge unique by id, prefer original topSongs order first
+              const existingIds = new Set(receivedTopSongs.map((s) => s?.id));
+              const extra = results.filter((r) => r && r.id && !existingIds.has(r.id));
+              if (extra.length) {
+                const merged = [...receivedTopSongs, ...extra];
+                setTopSongs(merged);
+                console.log("Fetched extra songs from search:", extra.length, "total now:", merged.length);
+              } else {
+                console.log("No extra songs found via search fallback.");
+              }
+            }
+          } catch (fallbackErr) {
+            console.warn("fallback search for artist songs failed:", fallbackErr);
+          }
+        }
       } catch (err) {
         console.error("fetchArtist error:", err);
         setError("Error fetching artist details");
@@ -51,7 +96,7 @@ const ArtistsDetails = () => {
     };
 
     fetchArtist();
-  }, [id]);
+  }, [id]); // eslint-disable-line
 
   const handleSingleClick = async (single) => {
     try {
@@ -167,6 +212,7 @@ const ArtistsDetails = () => {
           {visibleTopSongs.map((song, idx) => {
             const artists = song?.artists?.primary?.map((a) => a?.name).join(", ") || "";
             const songImg = getSongImage(song);
+            const displayName = sanitizeTitle(song?.name || song?.title || "");
             return (
               <button
                 key={song.id || `${song.name}-${idx}`}
@@ -181,7 +227,7 @@ const ArtistsDetails = () => {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <img src={songImg} alt={song?.name} className="h-12 w-12 rounded-md object-cover" />
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium truncate">{song?.name}</span>
+                    <span className="text-sm font-medium truncate">{displayName}</span>
                     <span className="text-[0.8rem] opacity-70 truncate">{artists}</span>
                   </div>
                 </div>

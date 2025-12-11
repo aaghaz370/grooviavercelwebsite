@@ -10,28 +10,26 @@ import SongGrid from "../components/SongGrid";
 import { fetchArtistByID, fetchAlbumByID, getSongbyQuery } from "../../fetch";
 import MusicContext from "../context/MusicContext";
 import { MdOutlineKeyboardArrowLeft, MdOutlineKeyboardArrowRight } from "react-icons/md";
+import { FaPlay, FaPause } from "react-icons/fa";
 
 /** Small helper to remove HTML entities / noisy tokens.
- *  Use `he.decode` if you add `he` dependency; fallback to simple replaces below.
+ *  If you want a stronger solution install `he` and use `he.decode`.
  */
 const sanitizeTitle = (raw = "") => {
   if (!raw) return "";
   let s = raw;
-  // common HTML entities
   s = s.replace(/&quot;/g, '"');
   s = s.replace(/&amp;/g, "&");
   s = s.replace(/&lt;/g, "<");
   s = s.replace(/&gt;/g, ">");
-  // remove (From "X") noisy tokens like the playlist code
   s = s.replace(/\(From\s*["'“”](.*?)["'“”]\)/gi, "($1)");
   s = s.replace(/From\s*["'“”](.*?)["'“”]/gi, "($1)");
-  s = s.replace(/&quot;/gi, '"');
   return s.trim();
 };
 
 const ArtistsDetails = () => {
   const { id } = useParams();
-  const { playMusic } = useContext(MusicContext);
+  const { playMusic, currentSong, isPlaying } = useContext(MusicContext) || {};
 
   const [artistData, setArtistData] = useState(null);
   const [topSongs, setTopSongs] = useState([]);
@@ -63,16 +61,14 @@ const ArtistsDetails = () => {
 
         console.log("artist topSongs length (initial):", receivedTopSongs.length);
 
-        // If API returned only a few songs (<= visibleCount) attempt fallback search by artist name
+        // fallback: if API returns very few songs, try search endpoint to get more
         if ((receivedTopSongs.length || 0) <= visibleCount) {
           try {
             const artistName = artist?.name || "";
             if (artistName) {
-              // Use your existing search endpoint to try and get more songs for this artist
               const searchRes = await getSongbyQuery(encodeURIComponent(artistName), 100);
               const results = searchRes?.data?.results || searchRes?.results || [];
 
-              // Merge unique by id, prefer original topSongs order first
               const existingIds = new Set(receivedTopSongs.map((s) => s?.id));
               const extra = results.filter((r) => r && r.id && !existingIds.has(r.id));
               if (extra.length) {
@@ -141,13 +137,15 @@ const ArtistsDetails = () => {
     );
   }
 
-  const imageUrl =
-    artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
+  const imageUrl = artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
 
   const visibleTopSongs = topSongs.slice(0, visibleCount);
   const hasMoreTopSongs = topSongs.length > visibleCount;
 
-  // helper to pick image like playlist
+  // is artist's song currently playing?
+  const isArtistPlaying = Boolean(currentSong && topSongs.some((s) => s.id === currentSong.id));
+
+  // helper to pick image similar to playlist
   const getSongImage = (song) =>
     song?.image?.[1]?.url || song?.image?.[2]?.url || song?.image?.[0]?.url || imageUrl;
 
@@ -180,22 +178,44 @@ const ArtistsDetails = () => {
                 {artistData.name}
               </h1>
 
-              <div className="mt-2 text-sm lg:text-base text-white/80">
-                Followers : {artistData.followerCount || artistData.fans || "—"}
+              <div className="mt-2 text-sm lg:text-base text-white/80 flex items-center gap-2">
+                <span>Followers : {artistData.followerCount || artistData.fans || "—"}</span>
+                {/* blue tick after followers */}
+                {artistData?.isVerified && (
+                  <img src="/verified.svg" alt="Verified" className="w-5 h-5" />
+                )}
               </div>
 
               <div className="mt-4 flex items-center gap-4">
+                {/* Play / Pause button — matches PlaylistDetails behaviour */}
                 <button
                   onClick={() => {
-                    if (visibleTopSongs.length > 0) {
-                      const s = visibleTopSongs[0];
-                      const audioSource = s.downloadUrl ? s.downloadUrl[4]?.url || s.downloadUrl : s.audio;
-                      playMusic(audioSource, s.name, s.duration, s.image || getSongImage(s), s.id, s.artists, topSongs);
+                    if (isArtistPlaying && isPlaying) {
+                      // toggle/pause — call playMusic with currentSong to reuse toggle behavior
+                      playMusic(
+                        currentSong?.audio?.currentSrc || currentSong?.audio,
+                        currentSong?.name,
+                        currentSong?.duration,
+                        currentSong?.image,
+                        currentSong?.id,
+                        topSongs
+                      );
+                    } else {
+                      // play first visible top song (or first in list)
+                      const toPlay = topSongs[0];
+                      if (!toPlay) return;
+                      const audioSource = toPlay.downloadUrl
+                        ? toPlay.downloadUrl[4]?.url || toPlay.downloadUrl
+                        : toPlay.audio;
+                      playMusic(audioSource, toPlay.name, toPlay.duration, toPlay.image || getSongImage(toPlay), toPlay.id, toPlay.artists, topSongs);
                     }
                   }}
-                  className="h-14 w-14 rounded-full flex items-center justify-center bg-white text-black shadow-lg transform active:scale-95"
+                  className={`h-14 w-14 rounded-full flex items-center justify-center ${
+                    isArtistPlaying && isPlaying ? "bg-white text-black" : "bg-white text-black"
+                  } shadow-lg transform active:scale-95`}
+                  title={isArtistPlaying && isPlaying ? "Pause" : "Play"}
                 >
-                  ▶
+                  {isArtistPlaying && isPlaying ? <FaPause className="text-xl" /> : <FaPlay className="text-xl" />}
                 </button>
               </div>
             </div>
@@ -205,8 +225,13 @@ const ArtistsDetails = () => {
 
       {/* page content below hero */}
       <div className="flex flex-col mt-2 px-[1.6rem] lg:px-[3rem] pb-32 -mt-12">
-        {/* Top Songs — use exact playlist row markup so spacing matches */}
-        <div className="mt-4">
+        {/* Top Songs heading */}
+        <div className="mt-2 mb-2">
+          <h2 className="text-sm font-semibold">Top Songs</h2>
+        </div>
+
+        {/* Top Songs — exact playlist row markup */}
+        <div className="mt-1">
           {topSongs.length === 0 && <div className="text-sm opacity-70">No songs available...</div>}
 
           {visibleTopSongs.map((song, idx) => {
@@ -251,11 +276,13 @@ const ArtistsDetails = () => {
           )}
         </div>
 
-        {/* Top Albums */}
+        {/* Top Albums — nudged left with small px to match playlist alignment */}
         {topAlbums.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold mb-2">Top Albums</h2>
-            <AlbumSlider albums={topAlbums} />
+            <div className="px-1">
+              <AlbumSlider albums={topAlbums} />
+            </div>
           </div>
         )}
 

@@ -270,15 +270,18 @@ const MyPlaylist = () => {
 
       {/* HERO / banner — like PlaylistDetails with big blurred background */}
       <div className="relative w-full h-[22rem] lg:h-[28rem] overflow-hidden">
-        {/* Large blurred background image layer */}
+        {/* Large blurred background image layer (robust) */}
         <div
           className="absolute inset-0 bg-cover bg-center filter blur-2xl scale-105 opacity-60"
-          style={{ backgroundImage: `url(${playlistImage})` }}
+          style={{ backgroundImage: `url(${playlistImage})`, zIndex: 0 }}
         />
         {/* gradient overlay (darker) */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(rgba(2,6,23,0.8), rgba(2,6,23,0.9))" }} />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(rgba(2,6,23,0.8), rgba(2,6,23,0.9))", zIndex: 1 }}
+        />
 
-        <div className="absolute left-0 right-0 bottom-0 px-[1.6rem] lg:px-[3rem] pb-6">
+        <div className="absolute left-0 right-0 bottom-0 px-[1.6rem] lg:px-[3rem] pb-6 z-20">
           <div className="flex items-end gap-6">
             <div className="transform translate-y-6">
               <div className="h-[9.5rem] w-[9.5rem] lg:h-[12rem] lg:w-[12rem] rounded-2xl overflow-hidden shadow-2xl border border-white/6">
@@ -330,7 +333,7 @@ const MyPlaylist = () => {
                   {isPlaylistPlaying && isPlaying ? <FaPause className="text-2xl" /> : <FaPlay className="text-2xl" />}
                 </button>
 
-                {/* header menu */}
+                {/* header menu: fixed so it won't be clipped */}
                 <div className="relative">
                   <button
                     onClick={() => {
@@ -345,9 +348,9 @@ const MyPlaylist = () => {
 
                   {headerMenuOpen && (
                     <>
-                      {/* backdrop to close */}
-                      <div className="fixed inset-0 z-40" onClick={() => setHeaderMenuOpen(false)} />
-                      <div className="absolute right-0 top-12 w-48 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-50 overflow-hidden">
+                      {/* fixed backdrop and fixed menu to avoid clipping by overflow parents */}
+                      <div className="fixed inset-0 z-50" onClick={() => setHeaderMenuOpen(false)} />
+                      <div className="fixed right-4 top-20 w-48 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-60 overflow-hidden">
                         <button className="w-full text-left px-3 py-2 hover:bg-white/10 flex items-center gap-2" onClick={handlePlayAll}>
                           <FaPlay className="text-[0.7rem]" /> Play all
                         </button>
@@ -388,9 +391,12 @@ const MyPlaylist = () => {
             const songImg = getSongImage(song);
             const displayName = song.name || song.title || "";
             return (
+              // use a div (not a button) for the row so nested controls don't conflict
               <div key={song.id || `${song.name}-${idx}`} className="relative">
-                <button
-                  className="flex items-center justify-between w-full px-2 py-3 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors text-left"
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onKeyPress={(e) => { if (e.key === "Enter") playTrack(song); }}
                   onClick={() => {
                     if (multiSelectMode) {
                       toggleSelectSongForMulti(song.id);
@@ -398,6 +404,7 @@ const MyPlaylist = () => {
                     }
                     playTrack(song);
                   }}
+                  className="flex items-center justify-between w-full px-2 py-3 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <img src={songImg} alt={displayName} className="h-12 w-12 rounded-md object-cover" />
@@ -412,25 +419,33 @@ const MyPlaylist = () => {
                       {song.duration ? new Date(song.duration * 1000).toISOString().substring(14, 19) : ""}
                     </span>
 
-                    {/* Wrap this button and its menu in a relative container so absolute menu is positioned to it */}
+                    {/* Wrap this button and its menu in a relative container so the absolute menu is positioned to it */}
                     <div className="relative">
+                      {/* Stop pointer events from bubbling to the row */}
                       <button
+                        onPointerDown={(e) => { e.stopPropagation(); }}
                         onClick={(e) => { e.stopPropagation(); setOpenSongMenuId(openSongMenuId === song.id ? null : song.id); }}
                         className="p-1 rounded-full hover:bg-white/10"
+                        aria-label="Song options"
                       >
                         <BsThreeDotsVertical />
                       </button>
 
                       {openSongMenuId === song.id && (
                         <>
-                          {/* backdrop to click outside and close menu */}
-                          <div className="fixed inset-0 z-40" onClick={() => setOpenSongMenuId(null)} />
-                          {/* absolute menu positioned relative to the wrapper */}
-                          <div className="absolute right-0 top-10 w-40 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-50 overflow-hidden">
-                            <button className="w-full text-left px-3 py-2 hover:bg-white/10" onClick={() => { playTrack(song); setOpenSongMenuId(null); }}>
+                          {/* clicking outside closes menu, backdrop is fixed to avoid clipping */}
+                          <div className="fixed inset-0 z-50" onClick={() => setOpenSongMenuId(null)} />
+                          <div className="absolute right-0 top-10 w-40 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-60 overflow-hidden">
+                            <button
+                              className="w-full text-left px-3 py-2 hover:bg-white/10"
+                              onClick={(e) => { e.stopPropagation(); playTrack(song); setOpenSongMenuId(null); }}
+                            >
                               Play
                             </button>
-                            <button className="w-full text-left px-3 py-2 hover:bg-white/10 text-red-300" onClick={() => { handleRemoveSong(song.id); }}>
+                            <button
+                              className="w-full text-left px-3 py-2 hover:bg-white/10 text-red-300"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveSong(song.id); }}
+                            >
                               Remove from playlist
                             </button>
                           </div>
@@ -438,7 +453,7 @@ const MyPlaylist = () => {
                       )}
                     </div>
                   </div>
-                </button>
+                </div>
               </div>
             );
           })}
@@ -473,8 +488,8 @@ const MyPlaylist = () => {
 
       {/* ADD SONGS MODAL */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#09090B] w-[95%] max-w-[550px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#09090B] w-[95%] max-w-[550px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3 z-80">
             <div className="flex items-center justify-between mb-1">
               <div className="flex flex-col">
                 <span className="text-xs opacity-70 uppercase tracking-[0.16em]">Add songs</span>
@@ -509,8 +524,8 @@ const MyPlaylist = () => {
 
       {/* RENAME MODAL */}
       {isRenameOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#09090B] w-[90%] max-w-[420px] rounded-2xl p-4 flex flex-col gap-3">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#09090B] w-[90%] max-w-[420px] rounded-2xl p-4 flex flex-col gap-3 z-80">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-semibold">Rename playlist</h2>
               <button onClick={() => setIsRenameOpen(false)} className="text-xs px-3 py-1 rounded-full bg-white/10 border border-white/20 hover:bg-white/15">Close</button>
@@ -526,7 +541,7 @@ const MyPlaylist = () => {
 
       {/* MULTI-SELECT bottom bar */}
       {multiSelectMode && (
-        <div className="fixed bottom-[4.5rem] left-0 right-0 z-60 flex justify-center">
+        <div className="fixed bottom-[4.5rem] left-0 right-0 z-70 flex justify-center">
           <div className="bg-[#111827] px-4 py-2 rounded-full border border-white/10 flex items-center gap-3 text-xs">
             <span>{selectedSongIds.length} selected</span>
             <button onClick={removeSelectedSongs} disabled={selectedSongIds.length === 0} className={`px-3 py-1 rounded-full ${selectedSongIds.length === 0 ? "bg-white/10 text-white/40 cursor-not-allowed" : "bg-white text-black hover:opacity-90"}`}>Remove</button>

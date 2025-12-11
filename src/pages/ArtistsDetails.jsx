@@ -27,21 +27,16 @@ const ArtistsDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // show-more state for top songs (start with 10)
+  // Show-more state for top songs (10 per click)
   const [visibleCount, setVisibleCount] = useState(10);
 
   const singlesScrollRef = useRef(null);
 
   const scrollLeft = () => {
-    if (singlesScrollRef.current) {
-      singlesScrollRef.current.scrollLeft -= 800;
-    }
+    if (singlesScrollRef.current) singlesScrollRef.current.scrollLeft -= 800;
   };
-
   const scrollRight = () => {
-    if (singlesScrollRef.current) {
-      singlesScrollRef.current.scrollLeft += 800;
-    }
+    if (singlesScrollRef.current) singlesScrollRef.current.scrollLeft += 800;
   };
 
   useEffect(() => {
@@ -49,22 +44,15 @@ const ArtistsDetails = () => {
       try {
         setLoading(true);
         const data = await fetchArtistByID(id);
-
         const raw = data?.data;
         const artist = Array.isArray(raw) ? raw[0] : raw;
 
         setArtistData(artist || null);
-
-        const ts = artist?.topSongs || [];
-        setTopSongs(ts);
-
-        const ta = artist?.topAlbums?.albums || artist?.topAlbums || [];
-        setTopAlbums(ta);
-
-        const sg = artist?.singles || [];
-        setSingles(sg);
+        setTopSongs(artist?.topSongs || []);
+        setTopAlbums(artist?.topAlbums?.albums || artist?.topAlbums || []);
+        setSingles(artist?.singles || []);
       } catch (err) {
-        console.error(err);
+        console.error("fetchArtist error:", err);
         setError("Error fetching artist details");
       } finally {
         setLoading(false);
@@ -74,31 +62,26 @@ const ArtistsDetails = () => {
     fetchArtist();
   }, [id]);
 
-  // play single: fetch album and play first song (same behaviour you used)
   const handleSingleClick = async (single) => {
     try {
       const albumId = single.id;
       if (!albumId) return;
-
       const albumRes = await fetchAlbumByID(albumId);
       const albumData = albumRes?.data;
       const firstSong = albumData?.songs?.[0];
-
       if (!firstSong) return;
 
       const audioSource = firstSong.downloadUrl
         ? firstSong.downloadUrl[4]?.url || firstSong.downloadUrl
         : firstSong.audio;
 
-      const { name, duration, image, id, artists } = firstSong;
-
       playMusic(
         audioSource,
-        name,
-        duration,
-        image,
-        id,
-        artists,
+        firstSong.name,
+        firstSong.duration,
+        firstSong.image,
+        firstSong.id,
+        firstSong.artists,
         albumData.songs
       );
     } catch (e) {
@@ -125,7 +108,6 @@ const ArtistsDetails = () => {
   const imageUrl =
     artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
 
-  // visible slice for top songs
   const visibleTopSongs = topSongs.slice(0, visibleCount);
   const hasMoreTopSongs = topSongs.length > visibleCount;
 
@@ -134,48 +116,36 @@ const ArtistsDetails = () => {
       <Navbar />
 
       <main className="pt-[9rem] lg:pt-[6.5rem] pb-[6rem] lg:pb-[4.5rem] px-4 lg:px-16 flex flex-col gap-8">
-        {/* HERO (matches playlist/album layout spacing and style) */}
+        {/* HERO */}
         <section className="flex flex-col lg:flex-row items-center lg:items-end gap-6">
           <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden shadow-xl">
-            <img
-              src={imageUrl}
-              alt={artistData.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={imageUrl} alt={artistData.name} className="w-full h-full object-cover" />
           </div>
 
           <div className="flex flex-col gap-2 lg:ml-4 w-full">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl lg:text-3xl font-semibold">
-                {artistData.name}
-              </h1>
+              <h1 className="text-2xl lg:text-3xl font-semibold">{artistData.name}</h1>
               {artistData?.isVerified && (
-                <img
-                  src="/verified.svg"
-                  alt="Verified"
-                  className="w-5 h-5 lg:w-6 lg:h-6"
-                />
+                <img src="/verified.svg" alt="Verified" className="w-5 h-5 lg:w-6 lg:h-6" />
               )}
             </div>
+
             <p className="text-sm lg:text-base text-gray-300">
               Followers : {artistData.followerCount || artistData.fans || "—"}
             </p>
             {artistData?.listenerCount && (
-              <p className="text-sm lg:text-base text-gray-300">
-                Listeners : {artistData.listenerCount}
-              </p>
+              <p className="text-sm lg:text-base text-gray-300">Listeners : {artistData.listenerCount}</p>
             )}
           </div>
         </section>
 
-        {/* TOP SONGS — playlist-style rows with Show more */}
+        {/* TOP SONGS (playlist-style rows) */}
         {topSongs.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Top Songs</h2>
 
             <div className="flex flex-col gap-2">
               {visibleTopSongs.map((song, idx) => (
-                // reuse SongsList / keep existing play behavior inside SongsList
                 <SongsList key={song.id || `${song.name}-${idx}`} {...song} song={topSongs} />
               ))}
             </div>
@@ -193,7 +163,7 @@ const ArtistsDetails = () => {
           </section>
         )}
 
-        {/* TOP ALBUMS — same style */}
+        {/* TOP ALBUMS */}
         {topAlbums.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Top Albums</h2>
@@ -201,7 +171,7 @@ const ArtistsDetails = () => {
           </section>
         )}
 
-        {/* SINGLES — clickable cards (fetch album & play first) */}
+        {/* SINGLES (cards; tap plays album-first) */}
         {singles.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Singles</h2>
@@ -209,7 +179,7 @@ const ArtistsDetails = () => {
             <div className="flex justify-center items-center gap-2 w-full">
               <MdOutlineKeyboardArrowLeft
                 className="text-3xl h-[9rem] hidden lg:block arrow-btn hover:scale-125 cursor-pointer"
-                onClick={scrollLeft}
+                onClick={() => { if (singlesScrollRef.current) singlesScrollRef.current.scrollLeft -= 800; }}
               />
 
               <div
@@ -217,19 +187,11 @@ const ArtistsDetails = () => {
                 className="grid grid-rows-1 grid-flow-col gap-3 lg:gap-3 w-full overflow-x-auto scroll-smooth scroll-hide px-1 lg:px-0"
               >
                 {singles.map((single) => (
-                  <div
-                    key={single.id}
-                    onClick={() => handleSingleClick(single)}
-                    className="cursor-pointer"
-                  >
+                  <div key={single.id} onClick={() => handleSingleClick(single)} className="cursor-pointer">
                     <SongGrid
                       {...single}
                       song={singles}
-                      downloadUrl={
-                        single.downloadUrl ||
-                        single.songs?.[0]?.downloadUrl ||
-                        single.perma_url
-                      }
+                      downloadUrl={single.downloadUrl || single.songs?.[0]?.downloadUrl || single.perma_url}
                       image={single.image || single.songs?.[0]?.image}
                       artists={single.artists || single.songs?.[0]?.artists}
                       duration={single.duration || single.songs?.[0]?.duration}
@@ -241,7 +203,7 @@ const ArtistsDetails = () => {
 
               <MdOutlineKeyboardArrowRight
                 className="text-3xl h-[9rem] hidden lg:block arrow-btn hover:scale-125 cursor-pointer"
-                onClick={scrollRight}
+                onClick={() => { if (singlesScrollRef.current) singlesScrollRef.current.scrollLeft += 800; }}
               />
             </div>
           </section>

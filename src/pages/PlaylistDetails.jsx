@@ -1,6 +1,6 @@
 // src/pages/PlaylistDetails.jsx
 import { useContext, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
@@ -16,12 +16,19 @@ import PlaylistSlider from "../components/Sliders/PlaylistSlider";
 import ArtistSlider from "../components/Sliders/ArtistSlider";
 import MusicContext from "../context/MusicContext";
 
-import { FaHeart, FaRegHeart, FaPlay } from "react-icons/fa6";
+import { FaHeart, FaRegHeart, FaPlay, FaPause } from "react-icons/fa";
 import { PiShuffleBold } from "react-icons/pi";
+import he from "he";
 
 const PlaylistDetails = () => {
   const { id } = useParams();
-  const { playMusic } = useContext(MusicContext);
+  const {
+    playMusic,
+    currentSong,
+    isPlaying,
+    shuffle,
+    toggleShuffle,
+  } = useContext(MusicContext);
 
   const [details, setDetails] = useState({});
   const [loading, setLoading] = useState(true);
@@ -35,7 +42,7 @@ const PlaylistDetails = () => {
   const [trendingPlaylists, setTrendingPlaylists] = useState([]);
   const [playlistArtists, setPlaylistArtists] = useState([]);
 
-  // YT Music style – pehle 50, baad mein Show more
+  // YT Music style – first 50, then Show more
   const [visibleCount, setVisibleCount] = useState(50);
 
   // ------- 1) Playlist fetch -------
@@ -166,33 +173,11 @@ const PlaylistDetails = () => {
   }, [songs]);
 
   // ------- 6) Play helpers -------
-
-  // Saavn song image safe helper
   const getSongImage = (song) =>
     song.image?.[1]?.url ||
     song.image?.[2]?.url ||
     song.image?.[0]?.url ||
     playlistImage;
-
-  const playFirstSong = () => {
-    if (!songs.length) return;
-    playSingleSong(songs[0], songs);
-  };
-
-  const shuffleArray = (arr) => {
-    const copy = [...arr];
-    for (let i = copy.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-  };
-
-  const shufflePlay = () => {
-    if (!songs.length) return;
-    const shuffled = shuffleArray(songs);
-    playSingleSong(shuffled[0], shuffled);
-  };
 
   const playSingleSong = (song, queueOverride) => {
     const queue = queueOverride || songs;
@@ -215,8 +200,49 @@ const PlaylistDetails = () => {
     );
   };
 
+  const playFirstSong = () => {
+    if (!songs.length) return;
+    playSingleSong(songs[0], songs);
+  };
+
+  const shuffleArray = (arr) => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+
+  const shufflePlay = () => {
+    if (!songs.length) return;
+    const shuffled = shuffleArray(songs);
+    playSingleSong(shuffled[0], shuffled);
+  };
+
+  // ------- sanitize titles (remove From "..." noise) -------
+  const sanitizeTitle = (raw) => {
+    if (!raw) return "";
+    let decoded = he.decode(raw);
+
+    // "(From "Jawan")" -> "(Jawan)"
+    decoded = decoded.replace(/\(From\s*["'“”](.*?)["'“”]\)/gi, "($1)");
+    // "From "Jawan"" -> "(Jawan)"
+    decoded = decoded.replace(/From\s*["'“”](.*?)["'“”]/gi, "($1)");
+    // fallback remove stray tokens
+    decoded = decoded.replace(/From\s*&quot;?/gi, "");
+    decoded = decoded.replace(/&quot;/gi, "");
+
+    return decoded.trim();
+  };
+
   const visibleSongs = songs.slice(0, visibleCount);
   const hasMore = songs.length > visibleCount;
+
+  // helper to detect if playlist is currently playing (any song)
+  const isPlaylistPlaying = Boolean(
+    currentSong && songs.some((s) => s.id === currentSong.id)
+  );
 
   // ------- 7) Loading / error -------
   if (loading) {
@@ -241,7 +267,7 @@ const PlaylistDetails = () => {
       <Navbar />
 
       <div className="flex flex-col mt-[7.5rem] lg:mt-[5.5rem] px-[1.6rem] lg:px-[3rem] pb-32">
-        {/* HEADER – clean */}
+        {/* HEADER – YT-music-like, left cover, middle meta, right circular controls */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
           <div className="flex items-start gap-4">
             <div className="h-[7rem] w-[7rem] lg:h-[8rem] lg:w-[8rem] rounded-2xl overflow-hidden bg-white/5 shadow-xl shadow-black/40 DetailImg">
@@ -253,7 +279,6 @@ const PlaylistDetails = () => {
             </div>
 
             <div className="flex flex-col gap-1">
-              {/* Saavn text hata diya, normal chip */}
               <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
                 Playlist
               </span>
@@ -283,6 +308,7 @@ const PlaylistDetails = () => {
                     <FaPlay className="text-[0.7rem]" />
                     Play
                   </button>
+
                   <button
                     onClick={shufflePlay}
                     className="flex items-center gap-1 text-xs px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/15"
@@ -303,6 +329,32 @@ const PlaylistDetails = () => {
                   <FaRegHeart className="text-xl" />
                 )}
               </button>
+
+              {/* Right-most circular control that toggles playlist play/pause (visual) */}
+              <button
+                onClick={() => {
+                  // If playlist is playing -> toggle pause by calling playMusic on current
+                  if (isPlaylistPlaying && isPlaying) {
+                    playMusic(
+                      currentSong?.audio?.currentSrc,
+                      currentSong?.name,
+                      currentSong?.duration,
+                      currentSong?.image,
+                      currentSong?.id,
+                      songs
+                    );
+                    return;
+                  }
+                  // else start playing first song
+                  playFirstSong();
+                }}
+                title={isPlaylistPlaying && isPlaying ? "Pause" : "Play"}
+                className={`ml-2 h-12 w-12 rounded-full flex items-center justify-center shadow-md transition transform active:scale-95 ${
+                  isPlaylistPlaying && isPlaying ? "bg-white text-black" : "bg-white/90 text-black"
+                }`}
+              >
+                {isPlaylistPlaying && isPlaying ? <FaPause /> : <FaPlay />}
+              </button>
             </div>
           </div>
         </div>
@@ -310,15 +362,14 @@ const PlaylistDetails = () => {
         {/* SONG LIST – YT Music style: cover + title + artists · duration */}
         <div className="mt-2 flex flex-col">
           {songs.length === 0 && (
-            <div className="text-xs opacity-70">
-              Playlist is empty...
-            </div>
+            <div className="text-xs opacity-70">Playlist is empty...</div>
           )}
 
           {visibleSongs.map((song, idx) => {
             const artists =
               song.artists?.primary?.map((a) => a.name).join(", ") || "";
             const songImg = getSongImage(song);
+            const displayName = sanitizeTitle(song.name || song.title);
 
             return (
               <button
@@ -334,7 +385,7 @@ const PlaylistDetails = () => {
                   />
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-medium truncate">
-                      {song.name}
+                      {displayName}
                     </span>
                     <span className="text-[0.75rem] opacity-70 truncate">
                       {artists}
@@ -368,9 +419,7 @@ const PlaylistDetails = () => {
         {/* Similar playlists */}
         {similarPlaylists.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-sm font-semibold mb-2">
-              Similar playlists
-            </h2>
+            <h2 className="text-sm font-semibold mb-2">Similar playlists</h2>
             <PlaylistSlider playlists={similarPlaylists} />
           </div>
         )}
@@ -378,9 +427,7 @@ const PlaylistDetails = () => {
         {/* Trending playlists */}
         {trendingPlaylists.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-sm font-semibold mb-2">
-              Trending playlists
-            </h2>
+            <h2 className="text-sm font-semibold mb-2">Trending playlists</h2>
             <PlaylistSlider playlists={trendingPlaylists} />
           </div>
         )}

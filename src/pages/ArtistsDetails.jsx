@@ -1,3 +1,4 @@
+// src/pages/ArtistsDetails.jsx
 import { useEffect, useState, useRef, useContext } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -25,6 +26,9 @@ const ArtistsDetails = () => {
   const [singles, setSingles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // show-more state for top songs (start with 10)
+  const [visibleCount, setVisibleCount] = useState(10);
 
   const singlesScrollRef = useRef(null);
 
@@ -54,10 +58,7 @@ const ArtistsDetails = () => {
         const ts = artist?.topSongs || [];
         setTopSongs(ts);
 
-        const ta =
-          artist?.topAlbums?.albums ||
-          artist?.topAlbums ||
-          [];
+        const ta = artist?.topAlbums?.albums || artist?.topAlbums || [];
         setTopAlbums(ta);
 
         const sg = artist?.singles || [];
@@ -73,26 +74,7 @@ const ArtistsDetails = () => {
     fetchArtist();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-screen justify-center items-center">
-        <img src="/Loading.gif" alt="Loading..." />
-      </div>
-    );
-  }
-
-  if (error || !artistData) {
-    return (
-      <div className="flex h-screen w-screen justify-center items-center">
-        {error || "Artist not found"}
-      </div>
-    );
-  }
-
-  const imageUrl =
-    artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
-
-  // 👉 Single card pe tap -> album fetch -> first song play
+  // play single: fetch album and play first song (same behaviour you used)
   const handleSingleClick = async (single) => {
     try {
       const albumId = single.id;
@@ -124,12 +106,35 @@ const ArtistsDetails = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen justify-center items-center">
+        <img src="/Loading.gif" alt="Loading..." />
+      </div>
+    );
+  }
+
+  if (error || !artistData) {
+    return (
+      <div className="flex h-screen w-screen justify-center items-center">
+        {error || "Artist not found"}
+      </div>
+    );
+  }
+
+  const imageUrl =
+    artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
+
+  // visible slice for top songs
+  const visibleTopSongs = topSongs.slice(0, visibleCount);
+  const hasMoreTopSongs = topSongs.length > visibleCount;
+
   return (
     <>
       <Navbar />
 
       <main className="pt-[9rem] lg:pt-[6.5rem] pb-[6rem] lg:pb-[4.5rem] px-4 lg:px-16 flex flex-col gap-8">
-        {/* HERO */}
+        {/* HERO (matches playlist/album layout spacing and style) */}
         <section className="flex flex-col lg:flex-row items-center lg:items-end gap-6">
           <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden shadow-xl">
             <img
@@ -163,19 +168,32 @@ const ArtistsDetails = () => {
           </div>
         </section>
 
-        {/* TOP SONGS */}
+        {/* TOP SONGS — playlist-style rows with Show more */}
         {topSongs.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Top Songs</h2>
+
             <div className="flex flex-col gap-2">
-              {topSongs.map((song) => (
-                <SongsList key={song.id} {...song} song={topSongs} />
+              {visibleTopSongs.map((song, idx) => (
+                // reuse SongsList / keep existing play behavior inside SongsList
+                <SongsList key={song.id || `${song.name}-${idx}`} {...song} song={topSongs} />
               ))}
             </div>
+
+            {hasMoreTopSongs && (
+              <div className="mt-3 flex justify-center">
+                <button
+                  onClick={() => setVisibleCount((c) => c + 10)}
+                  className="px-4 py-2 rounded-full bg-white/6 border border-white/10"
+                >
+                  Show more
+                </button>
+              </div>
+            )}
           </section>
         )}
 
-        {/* TOP ALBUMS */}
+        {/* TOP ALBUMS — same style */}
         {topAlbums.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Top Albums</h2>
@@ -183,7 +201,7 @@ const ArtistsDetails = () => {
           </section>
         )}
 
-        {/* SINGLES – SAME CARD STYLE, AB TAP PE PLAY HOGA */}
+        {/* SINGLES — clickable cards (fetch album & play first) */}
         {singles.length > 0 && (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Singles</h2>
@@ -207,7 +225,6 @@ const ArtistsDetails = () => {
                     <SongGrid
                       {...single}
                       song={singles}
-                      // title / subtitle etc handle for card
                       downloadUrl={
                         single.downloadUrl ||
                         single.songs?.[0]?.downloadUrl ||

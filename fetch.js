@@ -129,21 +129,27 @@ export const fetchAlbumByID = async (ID) => {
     }
 };
 
-export const fetchArtistByID = async (ID) => { 
-    try {
-        const response = await fetch(`${api_url}artists?id=${ID}`);
-        const text = await response.text(); 
 
-        // Ensure it's JSON before parsing
-        const data = JSON.parse(text);
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to Fetch Artist Data');
-        }
-        return data;
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
+
+export const fetchArtistByID = async (ID) => {
+  try {
+    // request with larger limit so we get more topSongs if API supports limit param
+    const url = `${api_url}artists?id=${ID}&limit=100`;
+    const response = await fetch(url, { method: "GET" });
+
+    // parse json directly (safer)
+    const data = await response.json();
+
+    if (!response.ok) {
+      // helpful error message
+      throw new Error(data?.message || `Failed to fetch artist: ${response.status}`);
     }
+
+    return data;
+  } catch (error) {
+    console.error("fetchArtistByID API Error:", error);
+    throw error;
+  }
 };
 
 

@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from "react";
+// src/pages/AlbumDetail.jsx
+import { useEffect, useState, useRef, useContext } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import SongsList from "../components/SongsList";
@@ -10,7 +11,7 @@ import {
 } from "../../fetch";
 import Footer from "../components/footer";
 import Navigator from "../components/Navigator";
-import { FaHeart, FaRegHeart } from "react-icons/fa6";
+import { FaHeart, FaRegHeart, FaPlay, FaPause } from "react-icons/fa";
 import SongGrid from "../components/SongGrid";
 import {
   MdOutlineKeyboardArrowLeft,
@@ -19,9 +20,14 @@ import {
 import { IoShareSocial } from "react-icons/io5";
 import AlbumSlider from "../components/Sliders/AlbumSlider";
 import ArtistSlider from "../components/Sliders/ArtistSlider";
+import { PiShuffleBold } from "react-icons/pi";
+import MusicContext from "../context/MusicContext";
 
 const AlbumDetail = () => {
   const { id } = useParams(); // album id from URL
+  const { playMusic, currentSong, isPlaying, shuffle, toggleShuffle } =
+    useContext(MusicContext);
+
   const [details, setDetails] = useState(null);
   const [suggetions, setSuggetion] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +60,7 @@ const AlbumDetail = () => {
   useEffect(() => {
     const fetchDetails = async () => {
       try {
+        setLoading(true);
         const data = await fetchAlbumByID(id);
         setDetails(data);
 
@@ -88,7 +95,7 @@ const AlbumDetail = () => {
       storedLiked.push({
         id: details.data.id,
         name: details.data.name,
-        image: details.data.image[2]?.url,
+        image: details.data.image?.[2]?.url,
         artists: details.data.artists,
       });
     }
@@ -165,77 +172,144 @@ const AlbumDetail = () => {
     );
 
   const albumdata = details.data || {};
-  const primaryArtist = details.data.artists?.primary?.[0] || {};
+  const primaryArtist = details.data?.artists?.primary?.[0] || {};
   const artistId = primaryArtist.id;
   const artistName = primaryArtist.name;
+
+  // safe album image
+  const albumImage =
+    details?.data?.image?.[2]?.url ||
+    details?.data?.image?.[1]?.url ||
+    details?.data?.image?.[0]?.url ||
+    "/default-image.png";
+
+  const songs = details.data?.songs || [];
+
+  // helper: get song image fallback to album
+  const getSongImage = (song) =>
+    song.image?.[2]?.url || song.image?.[1]?.url || song.image?.[0]?.url || albumImage;
+
+  // play first song helper (keeps your functions unchanged)
+  const playFirstSong = () => {
+    if (!songs || songs.length === 0) return;
+    const firstSong = songs[0];
+    const audioSource = firstSong.downloadUrl
+      ? firstSong.downloadUrl[4]?.url || firstSong.downloadUrl[0]?.url || firstSong.downloadUrl
+      : firstSong.audio;
+
+    playMusic(
+      audioSource,
+      firstSong.name,
+      firstSong.duration,
+      firstSong.image || getSongImage(firstSong),
+      firstSong.id,
+      firstSong.artists,
+      songs
+    );
+  };
+
+  // detect album playing
+  const isAlbumPlaying = Boolean(
+    currentSong && songs.some((s) => s.id === currentSong.id)
+  );
 
   return (
     <>
       <Navbar />
 
-      <div className="flex flex-col gap-[2rem] lg:gap-[2rem] pt-[10rem] lg:pt-[6rem] overflow-x-hidden">
-        {/* Album header */}
-        <div className="flex items-center pl-[2rem]">
-          <img
-            src={details.data.image[2]?.url}
-            alt={details.data.name}
-            className="h-[8rem] lg:h-[15rem] lg:rounded rounded-full object-cover shadow-2xl shadow-zinc-600"
-          />
+      {/* HERO / banner — YT-music-like */}
+      <div
+        className="relative w-full h-[22rem] lg:h-[26rem] overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(rgba(2,6,23,0.85), rgba(2,6,23,0.95)), url(${albumImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 backdrop-blur-sm" />
 
-          <div className="flex flex-col pl-[2rem]">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-medium lg:font-semibold">
-                {details.data.name}
-              </h2>
-              <pre className="font-sans font-semibold text-sm lg:text-lg">
-                {details.data.songCount} Songs by{" "}
-                {artistId ? (
-                  <Link
-                    to={`/artists/${artistId}`}
-                    className="hover:underline"
-                  >
-                    {artistName}
-                  </Link>
-                ) : (
-                  "Unknown Artist"
-                )}
-              </pre>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={toggleLikeAlbum}
-                title="Like Album"
-                className="border-[1px] mt-3 border-[#8f8f8f6e] h-[3rem] w-[3rem] flex justify-center items-center rounded-full"
-              >
-                {likedAlbums.some((album) => album.id === albumdata.id) ? (
-                  <FaHeart className="text-red-500 text-2xl" />
-                ) : (
-                  <FaRegHeart className="text-2xl icon" />
-                )}
-              </button>
-              <button
-                className="border-[1px] mt-3 border-[#8f8f8f6e] flex justify-center items-center h-[3rem] w-[3rem] rounded-full"
-                title="Share"
-              >
-                <IoShareSocial
-                  className="icon text-[1.8rem] mr-[0.1rem]"
-                  onClick={() =>
-                    navigator.share?.({
-                      title: details.data.name,
-                      text: `Listen on Musify`,
-                      url: `${window.location.origin}/albums/${id}`,
-                    })
-                  }
+        <div className="absolute left-0 right-0 bottom-0 px-[1.6rem] lg:px-[3rem] pb-6">
+          <div className="flex items-end gap-6">
+            <div className="transform translate-y-6">
+              <div className="h-[9.5rem] w-[9.5rem] lg:h-[12rem] lg:w-[12rem] rounded-2xl overflow-hidden shadow-2xl border border-white/6">
+                <img
+                  src={albumImage}
+                  alt={details.data.name || "Album"}
+                  className="w-full h-full object-cover"
                 />
-              </button>
+              </div>
+            </div>
+
+            <div className="flex-1 text-left translate-y-6">
+              <h1 className="text-2xl lg:text-4xl font-extrabold text-white leading-tight">
+                {details.data.name}
+              </h1>
+              <div className="mt-2 text-sm lg:text-base text-white/80">
+                {details.data.songCount} song{details.data.songCount !== 1 ? "s" : ""} • {Math.floor((songs.reduce((a,b) => a + (b.duration||0),0))/3600)} hr {Math.floor(((songs.reduce((a,b) => a + (b.duration||0),0))%3600)/60)} min
+              </div>
+
+              {details.data.description && (
+                <div className="mt-2 text-sm text-white/70 line-clamp-2">
+                  {details.data.description}
+                </div>
+              )}
+
+              {/* controls row */}
+              <div className="mt-4 flex items-center gap-4">
+                {/* shuffle (small) */}
+                <button
+                  onClick={() => toggleShuffle && toggleShuffle()}
+                  className={`h-11 w-11 rounded-full flex items-center justify-center transition-all ${
+                    shuffle ? "bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] text-white" : "bg-white/6 text-white/80"
+                  }`}
+                  title="Shuffle"
+                >
+                  <PiShuffleBold className="text-xl" />
+                </button>
+
+                {/* main big play/pause */}
+                <button
+                  onClick={() => {
+                    if (isAlbumPlaying && isPlaying) {
+                      // pause by calling playMusic on current (matches existing pattern)
+                      playMusic(
+                        currentSong?.audio?.currentSrc,
+                        currentSong?.name,
+                        currentSong?.duration,
+                        currentSong?.image,
+                        currentSong?.id,
+                        songs
+                      );
+                    } else {
+                      playFirstSong();
+                    }
+                  }}
+                  className="h-16 w-16 rounded-full flex items-center justify-center bg-white text-black shadow-lg transform active:scale-95"
+                  title={isAlbumPlaying && isPlaying ? "Pause" : "Play"}
+                >
+                  {isAlbumPlaying && isPlaying ? <FaPause className="text-2xl" /> : <FaPlay className="text-2xl" />}
+                </button>
+
+                {/* like (small) */}
+                <button
+                  onClick={toggleLikeAlbum}
+                  className="h-11 w-11 rounded-full flex items-center justify-center bg-white/6 text-white/80"
+                  title="Like album"
+                >
+                  {likedAlbums.some((a) => a.id === albumdata.id) ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
+      {/* PAGE CONTENT */}
+      <div className="flex flex-col gap-[2rem] lg:gap-[2rem] px-[1.6rem] lg:px-[3rem] -mt-12 pb-32">
         {/* Songs list */}
-        <div className="flex flex-col h-auto gap-4">
-          <div className="flex flex-col gap-2 overflow-y-scroll scroll-smooth scroll-hide pt-3">
-            {details.data.songs?.map((song) => (
+        <div className="flex flex-col h-auto gap-4 mt-2">
+          <div className="flex flex-col gap-2">
+            {songs.map((song) => (
               <SongsList key={song.id} {...song} song={list} />
             ))}
           </div>
@@ -244,7 +318,7 @@ const AlbumDetail = () => {
         {/* You Might Like */}
         {Array.isArray(suggetions) && suggetions.length > 0 && (
           <div className="flex flex-col justify-center items-center w-full mb-[2rem]">
-            <h2 className="lg:ml-[3rem] lg:-translate-x-[37rem] lg:text-center m-4 text-xl sm:text-2xl font-semibold pl-3 sm:pl-[3rem] w-full">
+            <h2 className="m-4 text-xl sm:text-2xl font-semibold w-full pl-3 sm:pl-[3rem]">
               You Might Like
             </h2>
             <div className="flex justify-center items-center gap-3 w-full">

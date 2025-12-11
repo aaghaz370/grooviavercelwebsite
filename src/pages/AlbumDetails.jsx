@@ -28,7 +28,8 @@ const AlbumDetail = () => {
   const { playMusic, currentSong, isPlaying, shuffle, toggleShuffle } =
     useContext(MusicContext);
 
-  const [details, setDetails] = useState(null);
+  // initialize details as empty object to avoid undefined errors
+  const [details, setDetails] = useState({});
   const [suggetions, setSuggetion] = useState([]);
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState({});
@@ -55,7 +56,7 @@ const AlbumDetail = () => {
       try {
         setLoading(true);
         const data = await fetchAlbumByID(id);
-        setDetails(data);
+        setDetails(data || {});
 
         const sugid = data?.data?.songs?.[0]?.id;
         if (sugid) {
@@ -65,7 +66,7 @@ const AlbumDetail = () => {
           setSuggetion([]);
         }
 
-        const albumSongs = data.data.songs || [];
+        const albumSongs = data?.data?.songs || [];
         setList(albumSongs);
       } catch (err) {
         setError("Error fetching album details");
@@ -82,14 +83,17 @@ const AlbumDetail = () => {
   const toggleLikeAlbum = () => {
     let storedLiked = JSON.parse(localStorage.getItem("likedAlbums")) || [];
 
-    if (storedLiked.some((album) => album.id === details.data.id)) {
-      storedLiked = storedLiked.filter((album) => album.id !== details.data.id);
+    const albumId = details?.data?.id;
+    if (!albumId) return;
+
+    if (storedLiked.some((album) => album.id === albumId)) {
+      storedLiked = storedLiked.filter((album) => album.id !== albumId);
     } else {
       storedLiked.push({
-        id: details.data.id,
-        name: details.data.name,
-        image: details.data.image?.[2]?.url,
-        artists: details.data.artists,
+        id: albumId,
+        name: details.data?.name,
+        image: details.data?.image?.[2]?.url,
+        artists: details.data?.artists,
       });
     }
 
@@ -106,7 +110,7 @@ const AlbumDetail = () => {
     const topArtists = albumData.artists?.primary || [];
     const all = [...songArtists, ...topArtists];
     const unique = all.filter(
-      (a, i, self) => a.id && i === self.findIndex((t) => t.id === a.id)
+      (a, i, self) => a && a.id && i === self.findIndex((t) => t.id === a.id)
     );
     setAlbumArtists(unique);
   }, [details]);
@@ -150,8 +154,9 @@ const AlbumDetail = () => {
       </div>
     );
 
-  const albumdata = details.data || {};
-  const songs = details.data?.songs || [];
+  // safe access with optional chaining
+  const albumdata = details?.data || {};
+  const songs = details?.data?.songs || [];
 
   const albumImage =
     details?.data?.image?.[2]?.url ||
@@ -161,9 +166,9 @@ const AlbumDetail = () => {
 
   // helper fallback image for song
   const getSongImage = (song) =>
-    song.image?.[2]?.url ||
-    song.image?.[1]?.url ||
-    song.image?.[0]?.url ||
+    song?.image?.[2]?.url ||
+    song?.image?.[1]?.url ||
+    song?.image?.[0]?.url ||
     albumImage;
 
   // play first song – keep existing behavior

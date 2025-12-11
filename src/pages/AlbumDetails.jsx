@@ -17,7 +17,6 @@ import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardArrowRight,
 } from "react-icons/md";
-import { IoShareSocial } from "react-icons/io5";
 import AlbumSlider from "../components/Sliders/AlbumSlider";
 import ArtistSlider from "../components/Sliders/ArtistSlider";
 import { PiShuffleBold } from "react-icons/pi";
@@ -25,8 +24,14 @@ import MusicContext from "../context/MusicContext";
 
 const AlbumDetail = () => {
   const { id } = useParams();
-  const { playMusic, currentSong, isPlaying, shuffle, toggleShuffle } =
-    useContext(MusicContext);
+
+  // SAFE context access: if provider missing, fallback to no-op defaults
+  const ctx = useContext(MusicContext) || {};
+  const playMusic = ctx.playMusic || (() => {});
+  const currentSong = ctx.currentSong || null;
+  const isPlaying = typeof ctx.isPlaying === "boolean" ? ctx.isPlaying : false;
+  const shuffle = Boolean(ctx.shuffle);
+  const toggleShuffle = ctx.toggleShuffle || (() => {});
 
   // initialize details as empty object to avoid undefined errors
   const [details, setDetails] = useState({});
@@ -36,7 +41,11 @@ const AlbumDetail = () => {
   const [error, setError] = useState(null);
 
   const [likedAlbums, setLikedAlbums] = useState(() => {
-    return JSON.parse(localStorage.getItem("likedAlbums")) || [];
+    try {
+      return JSON.parse(localStorage.getItem("likedAlbums")) || [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const [similarAlbums, setSimilarAlbums] = useState([]);
@@ -45,10 +54,10 @@ const AlbumDetail = () => {
   const scrollRef = useRef(null);
 
   const scrollLeft = (ref) => {
-    if (ref.current) ref.current.scrollLeft -= 1000;
+    if (ref?.current) ref.current.scrollLeft -= 1000;
   };
   const scrollRight = (ref) => {
-    if (ref.current) ref.current.scrollLeft += 1000;
+    if (ref?.current) ref.current.scrollLeft += 1000;
   };
 
   useEffect(() => {
@@ -61,7 +70,7 @@ const AlbumDetail = () => {
         const sugid = data?.data?.songs?.[0]?.id;
         if (sugid) {
           const suggestions = await getSuggestionSong(sugid);
-          setSuggetion(suggestions.data || []);
+          setSuggetion(suggestions?.data || []);
         } else {
           setSuggetion([]);
         }
@@ -81,30 +90,37 @@ const AlbumDetail = () => {
 
   // like/unlike
   const toggleLikeAlbum = () => {
-    let storedLiked = JSON.parse(localStorage.getItem("likedAlbums")) || [];
+    try {
+      let storedLiked = JSON.parse(localStorage.getItem("likedAlbums")) || [];
 
-    const albumId = details?.data?.id;
-    if (!albumId) return;
+      const albumId = details?.data?.id;
+      if (!albumId) return;
 
-    if (storedLiked.some((album) => album.id === albumId)) {
-      storedLiked = storedLiked.filter((album) => album.id !== albumId);
-    } else {
-      storedLiked.push({
-        id: albumId,
-        name: details.data?.name,
-        image: details.data?.image?.[2]?.url,
-        artists: details.data?.artists,
-      });
+      if (storedLiked.some((album) => album.id === albumId)) {
+        storedLiked = storedLiked.filter((album) => album.id !== albumId);
+      } else {
+        storedLiked.push({
+          id: albumId,
+          name: details?.data?.name,
+          image: details?.data?.image?.[2]?.url,
+          artists: details?.data?.artists,
+        });
+      }
+
+      setLikedAlbums(storedLiked);
+      localStorage.setItem("likedAlbums", JSON.stringify(storedLiked));
+    } catch (e) {
+      console.error("toggleLikeAlbum error", e);
     }
-
-    setLikedAlbums(storedLiked);
-    localStorage.setItem("likedAlbums", JSON.stringify(storedLiked));
   };
 
   // artists
   useEffect(() => {
     const albumData = details?.data;
-    if (!albumData) return;
+    if (!albumData) {
+      setAlbumArtists([]);
+      return;
+    }
     const songArtists =
       albumData.songs?.flatMap((s) => s.artists?.primary || []) || [];
     const topArtists = albumData.artists?.primary || [];
@@ -118,7 +134,10 @@ const AlbumDetail = () => {
   // similar albums
   useEffect(() => {
     const albumData = details?.data;
-    if (!albumData) return;
+    if (!albumData) {
+      setSimilarAlbums([]);
+      return;
+    }
     const fetchSimilar = async () => {
       try {
         const primaryArtistName =
@@ -175,19 +194,19 @@ const AlbumDetail = () => {
   const playFirstSong = () => {
     if (!songs || songs.length === 0) return;
     const firstSong = songs[0];
-    const audioSource = firstSong.downloadUrl
+    const audioSource = firstSong?.downloadUrl
       ? firstSong.downloadUrl[4]?.url ||
         firstSong.downloadUrl[0]?.url ||
         firstSong.downloadUrl
-      : firstSong.audio;
+      : firstSong?.audio;
 
     playMusic(
       audioSource,
-      firstSong.name,
-      firstSong.duration,
-      firstSong.image || getSongImage(firstSong),
-      firstSong.id,
-      firstSong.artists,
+      firstSong?.name,
+      firstSong?.duration,
+      firstSong?.image || getSongImage(firstSong),
+      firstSong?.id,
+      firstSong?.artists,
       songs
     );
   };
@@ -199,7 +218,7 @@ const AlbumDetail = () => {
   // compute totals like playlist page
   const { totalSongs, totalDurationLabel } = useMemo(() => {
     const totalSongsLocal = songs.length;
-    const totalSeconds = songs.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const totalSeconds = songs.reduce((sum, s) => sum + (s?.duration || 0), 0);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     let label = "";
@@ -307,25 +326,25 @@ const AlbumDetail = () => {
 
           {songs.map((song, idx) => {
             const artists =
-              song.artists?.primary?.map((a) => a.name).join(", ") || "";
+              song?.artists?.primary?.map((a) => a?.name).join(", ") || "";
             const songImg = getSongImage(song);
 
             return (
               <button
-                key={song.id || `${song.name}-${idx}`}
+                key={song?.id || `${song?.name}-${idx}`}
                 className="flex items-center justify-between w-full px-1 py-2 rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors text-left"
                 onClick={() =>
                   playMusic(
-                    song.downloadUrl
+                    song?.downloadUrl
                       ? song.downloadUrl[4]?.url ||
                         song.downloadUrl[3]?.url ||
                         song.downloadUrl[0]?.url
-                      : song.audio,
-                    song.name,
-                    song.duration,
-                    song.image || songImg,
-                    song.id,
-                    song.artists,
+                      : song?.audio,
+                    song?.name,
+                    song?.duration,
+                    song?.image || songImg,
+                    song?.id,
+                    song?.artists,
                     songs
                   )
                 }
@@ -333,12 +352,12 @@ const AlbumDetail = () => {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <img
                     src={songImg}
-                    alt={song.name}
+                    alt={song?.name}
                     className="h-10 w-10 rounded-md object-cover"
                   />
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-medium truncate">
-                      {song.name}
+                      {song?.name}
                     </span>
                     <span className="text-[0.75rem] opacity-70 truncate">
                       {artists}
@@ -347,8 +366,8 @@ const AlbumDetail = () => {
                 </div>
 
                 <span className="ml-3 text-[0.75rem] opacity-70">
-                  {song.duration
-                    ? new Date(song.duration * 1000)
+                  {song?.duration
+                    ? new Date((song.duration || 0) * 1000)
                         .toISOString()
                         .substring(14, 19)
                     : ""}
@@ -374,7 +393,7 @@ const AlbumDetail = () => {
                 ref={scrollRef}
               >
                 {suggetions.map((song, index) => (
-                  <SongGrid key={song.id || index} {...song} song={list} />
+                  <SongGrid key={song?.id || index} {...song} song={list} />
                 ))}
               </div>
               <MdOutlineKeyboardArrowRight

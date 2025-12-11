@@ -25,7 +25,7 @@ import MusicContext from "../context/MusicContext";
 const AlbumDetail = () => {
   const { id } = useParams();
 
-  // SAFE context access: if provider missing, fallback to no-op defaults
+  // safe context usage
   const ctx = useContext(MusicContext) || {};
   const playMusic = ctx.playMusic || (() => {});
   const currentSong = ctx.currentSong || null;
@@ -33,7 +33,7 @@ const AlbumDetail = () => {
   const shuffle = Boolean(ctx.shuffle);
   const toggleShuffle = ctx.toggleShuffle || (() => {});
 
-  // initialize details as empty object to avoid undefined errors
+  // state
   const [details, setDetails] = useState({});
   const [suggetions, setSuggetion] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +88,6 @@ const AlbumDetail = () => {
     fetchDetails();
   }, [id]);
 
-  // like/unlike
   const toggleLikeAlbum = () => {
     try {
       let storedLiked = JSON.parse(localStorage.getItem("likedAlbums")) || [];
@@ -173,7 +172,7 @@ const AlbumDetail = () => {
       </div>
     );
 
-  // safe access with optional chaining
+  // safe access
   const albumdata = details?.data || {};
   const songs = details?.data?.songs || [];
 
@@ -183,14 +182,12 @@ const AlbumDetail = () => {
     details?.data?.image?.[0]?.url ||
     "/default-image.png";
 
-  // helper fallback image for song
   const getSongImage = (song) =>
     song?.image?.[2]?.url ||
     song?.image?.[1]?.url ||
     song?.image?.[0]?.url ||
     albumImage;
 
-  // play first song – keep existing behavior
   const playFirstSong = () => {
     if (!songs || songs.length === 0) return;
     const firstSong = songs[0];
@@ -215,7 +212,7 @@ const AlbumDetail = () => {
     currentSong && songs.some((s) => s.id === currentSong.id)
   );
 
-  // ---- replaced useMemo with direct computation ----
+  // totals (no hooks)
   const totalSongs = songs.length;
   const totalSeconds = songs.reduce((sum, s) => sum + (s?.duration || 0), 0);
   const hours = Math.floor(totalSeconds / 3600);
@@ -227,7 +224,7 @@ const AlbumDetail = () => {
       <Navbar />
 
       <div className="flex flex-col mt-[7.5rem] lg:mt-[5.5rem] px-[1.6rem] lg:px-[3rem] pb-32">
-        {/* Header — same style as PlaylistDetails */}
+        {/* HEADER – same layout as PlaylistDetails */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
           <div className="flex items-start gap-4">
             <div className="h-[7rem] w-[7rem] lg:h-[8rem] lg:w-[8rem] rounded-2xl overflow-hidden bg-white/5 shadow-xl shadow-black/40 DetailImg">
@@ -271,7 +268,7 @@ const AlbumDetail = () => {
                     <PiShuffleBold className="text-sm" />
                   </button>
 
-                  {/* main big circular play/pause */}
+                  {/* big circular play/pause */}
                   <button
                     onClick={() => {
                       if (isAlbumPlaying && isPlaying) {
@@ -313,7 +310,7 @@ const AlbumDetail = () => {
           </div>
         </div>
 
-        {/* Songs list — full width, same row style as PlaylistDetails */}
+        {/* Songs list — same YT music style rows as playlist page */}
         <div className="mt-2 flex flex-col">
           {songs.length === 0 && (
             <div className="text-xs opacity-70">Album is empty...</div>
@@ -375,10 +372,8 @@ const AlbumDetail = () => {
         {/* You Might Like */}
         {Array.isArray(suggetions) && suggetions.length > 0 && (
           <div className="flex flex-col justify-center items-center w-full mb-[1.5rem]">
-            <h2 className="m-0 mt-2 text-xl sm:text-2xl font-semibold w-full">
-              You Might Like
-            </h2>
-            <div className="flex justify-center items-center gap-3 w-full mt-3">
+            <h2 className="text-sm font-semibold mb-2">You Might Like</h2>
+            <div className="flex justify-center items-center gap-3 w-full">
               <MdOutlineKeyboardArrowLeft
                 className="text-3xl hover:scale-125 transition-all duration-200 ease-in-out cursor-pointer hidden lg:block"
                 onClick={() => scrollLeft(scrollRef)}
@@ -399,18 +394,18 @@ const AlbumDetail = () => {
           </div>
         )}
 
-        {/* Similar Albums */}
+        {/* Similar Albums — heading & slider spacing matched to playlist page */}
         {similarAlbums.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-3">Similar Albums</h2>
+          <div className="mt-8">
+            <h2 className="text-sm font-semibold mb-2">Similar Albums</h2>
             <AlbumSlider albums={similarAlbums} />
           </div>
         )}
 
-        {/* Artists — tightened gap */}
+        {/* Artists — same heading style and tightened gap */}
         {albumArtists.length > 0 && (
-          <div className="mt-6 mb-6">
-            <h2 className="text-xl font-semibold mb-3">Artists in this Album</h2>
+          <div className="mt-8 mb-6">
+            <h2 className="text-sm font-semibold mb-2">Artists in this Album</h2>
             <ArtistSlider artists={albumArtists} />
           </div>
         )}

@@ -1,5 +1,5 @@
 // src/pages/AlbumDetail.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
@@ -22,13 +22,14 @@ import { PiShuffleBold } from "react-icons/pi";
 
 const AlbumDetail = () => {
   const { id } = useParams();
-  const ctx = React.useContext ? React.useContext(MusicContext) : null;
-  // safe context fallback
-  const playMusic = ctx?.playMusic || (() => {});
-  const currentSong = ctx?.currentSong || null;
-  const isPlaying = typeof ctx?.isPlaying === "boolean" ? ctx.isPlaying : false;
-  const shuffle = Boolean(ctx?.shuffle);
-  const toggleShuffle = ctx?.toggleShuffle || (() => {});
+
+  // proper useContext import & usage
+  const ctx = useContext(MusicContext) || {};
+  const playMusic = ctx.playMusic || (() => {});
+  const currentSong = ctx.currentSong || null;
+  const isPlaying = typeof ctx.isPlaying === "boolean" ? ctx.isPlaying : false;
+  const shuffle = Boolean(ctx.shuffle);
+  const toggleShuffle = ctx.toggleShuffle || (() => {});
 
   const [details, setDetails] = useState({});
   const [loading, setLoading] = useState(true);
@@ -59,7 +60,7 @@ const AlbumDetail = () => {
           setSuggetion([]);
         }
 
-        // artists
+        // build artists
         const albumData = data?.data || {};
         const songArtists =
           albumData.songs?.flatMap((s) => s.artists?.primary || []) || [];
@@ -99,7 +100,6 @@ const AlbumDetail = () => {
   }, [id]);
 
   useEffect(() => {
-    // persist likedAlbums
     try {
       localStorage.setItem("likedAlbums", JSON.stringify(likedAlbums));
     } catch {}
@@ -156,7 +156,7 @@ const AlbumDetail = () => {
 
   const isAlbumPlaying = Boolean(currentSong && songs.some((s) => s.id === currentSong.id));
 
-  // totals (same as playlist)
+  // totals like playlist
   const totalSongs = songs.length;
   const totalSeconds = songs.reduce((sum, s) => sum + (s.duration || 0), 0);
   const hours = Math.floor(totalSeconds / 3600);
@@ -183,7 +183,7 @@ const AlbumDetail = () => {
     <>
       <Navbar />
 
-      {/* HERO / banner — copied from PlaylistDetails so layout is identical */}
+      {/* HERO / banner — same as PlaylistDetails */}
       <div
         className="relative w-full h-[22rem] lg:h-[28rem] overflow-hidden"
         style={{
@@ -232,7 +232,6 @@ const AlbumDetail = () => {
                 <button
                   onClick={() => {
                     if (isAlbumPlaying && isPlaying) {
-                      // pause by re-calling playMusic (keeps existing toggle behavior)
                       playMusic(
                         currentSong?.audio?.currentSrc,
                         currentSong?.name,
@@ -265,9 +264,9 @@ const AlbumDetail = () => {
         </div>
       </div>
 
-      {/* page content below hero — negative margin like playlist so it's visually identical */}
+      {/* content below hero — negative margin to match playlist */}
       <div className="flex flex-col mt-2 px-[1.6rem] lg:px-[3rem] pb-32 -mt-12">
-        {/* songs list – YT playlist style rows */}
+        {/* songs list – playlist style rows */}
         <div className="mt-4">
           {songs.length === 0 && <div className="text-sm opacity-70">Album is empty...</div>}
 
@@ -296,38 +295,33 @@ const AlbumDetail = () => {
           })}
         </div>
 
-        {/* You Might Like — same small heading style */}
+        {/* You Might Like */}
         {Array.isArray(suggetions) && suggetions.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold mb-2">You Might Like</h2>
-            <div className="flex items-center gap-3">
-              {/* left arrow hidden on mobile like playlist */}
-              <div className="w-full overflow-x-auto scroll-hide py-1">
-                <div className="inline-flex gap-3 px-1">
-                  {suggetions.map((s, i) => (
-                    <div key={s.id || i} className="inline-block">
-                      {/* reuse SongGrid component */}
-                      <SongCardForRow {...s} />
-                    </div>
-                  ))}
-                </div>
+            <div className="w-full overflow-x-auto scroll-hide py-1">
+              <div className="inline-flex gap-3 px-1">
+                {suggetions.map((s, i) => (
+                  <div key={s.id || i} className="inline-block">
+                    <SongCardForRow {...s} />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* Similar Albums — increase visual size by wrapping in larger container and pass cardSize prop */}
+        {/* Similar Albums */}
         {similarAlbums.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold mb-2">Similar Albums</h2>
-            <div className="px-1"> {/* reduce left gap like playlist */}
-              {/* pass cardSize prop (if slider supports it) and give a larger container */}
+            <div className="px-1">
               <AlbumSlider albums={similarAlbums} cardSize="large" className="py-2" />
             </div>
           </div>
         )}
 
-        {/* Artists — same heading & spacing as playlist */}
+        {/* Artists */}
         {albumArtists.length > 0 && (
           <div className="mt-8 mb-6">
             <h2 className="text-sm font-semibold mb-2">Artists in this Album</h2>
@@ -343,11 +337,6 @@ const AlbumDetail = () => {
   );
 };
 
-/**
- * Small local fallback presentation for a suggestion card used inside "You Might Like".
- * If you have SongGrid component already, ignore this helper; I included a small lightweight
- * presentation to avoid dependency on external layout differences.
- */
 const SongCardForRow = ({ id, name, image, artists }) => {
   const img = image?.[1]?.url || image?.[0]?.url;
   return (

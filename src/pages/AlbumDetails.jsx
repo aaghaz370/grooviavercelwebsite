@@ -217,9 +217,9 @@ const AlbumDetail = () => {
     <>
       <Navbar />
 
-      {/* HERO / banner — YT-music-like */}
+      {/* HERO / banner — tuned spacing so it doesn't overlap content */}
       <div
-        className="relative w-full h-[22rem] lg:h-[26rem] overflow-hidden"
+        className="relative w-full h-[18rem] lg:h-[22rem] overflow-hidden"
         style={{
           backgroundImage: `linear-gradient(rgba(2,6,23,0.85), rgba(2,6,23,0.95)), url(${albumImage})`,
           backgroundSize: "cover",
@@ -228,10 +228,10 @@ const AlbumDetail = () => {
       >
         <div className="absolute inset-0 backdrop-blur-sm" />
 
-        <div className="absolute left-0 right-0 bottom-0 px-[1.6rem] lg:px-[3rem] pb-6">
-          <div className="flex items-end gap-6">
-            <div className="transform translate-y-6">
-              <div className="h-[9.5rem] w-[9.5rem] lg:h-[12rem] lg:w-[12rem] rounded-2xl overflow-hidden shadow-2xl border border-white/6">
+        <div className="absolute left-4 right-4 bottom-4 lg:left-12 lg:right-12 pb-2">
+          <div className="flex items-end gap-4 lg:gap-6">
+            <div className="transform translate-y-4">
+              <div className="h-[8.5rem] w-[8.5rem] lg:h-[11.5rem] lg:w-[11.5rem] rounded-2xl overflow-hidden shadow-2xl border border-white/6">
                 <img
                   src={albumImage}
                   alt={details.data.name || "Album"}
@@ -240,12 +240,14 @@ const AlbumDetail = () => {
               </div>
             </div>
 
-            <div className="flex-1 text-left translate-y-6">
-              <h1 className="text-2xl lg:text-4xl font-extrabold text-white leading-tight">
+            <div className="flex-1 text-left translate-y-4">
+              <h1 className="text-xl lg:text-3xl font-extrabold text-white leading-tight">
                 {details.data.name}
               </h1>
-              <div className="mt-2 text-sm lg:text-base text-white/80">
-                {details.data.songCount} song{details.data.songCount !== 1 ? "s" : ""} • {Math.floor((songs.reduce((a,b) => a + (b.duration||0),0))/3600)} hr {Math.floor(((songs.reduce((a,b) => a + (b.duration||0),0))%3600)/60)} min
+              <div className="mt-1 text-sm lg:text-base text-white/80">
+                {details.data.songCount} song{details.data.songCount !== 1 ? "s" : ""} •{" "}
+                {Math.floor((songs.reduce((a,b) => a + (b.duration||0),0))/3600)} hr{" "}
+                {Math.floor(((songs.reduce((a,b) => a + (b.duration||0),0))%3600)/60)} min
               </div>
 
               {details.data.description && (
@@ -255,16 +257,16 @@ const AlbumDetail = () => {
               )}
 
               {/* controls row */}
-              <div className="mt-4 flex items-center gap-4">
+              <div className="mt-3 flex items-center gap-3">
                 {/* shuffle (small) */}
                 <button
                   onClick={() => toggleShuffle && toggleShuffle()}
-                  className={`h-11 w-11 rounded-full flex items-center justify-center transition-all ${
+                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${
                     shuffle ? "bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] text-white" : "bg-white/6 text-white/80"
                   }`}
                   title="Shuffle"
                 >
-                  <PiShuffleBold className="text-xl" />
+                  <PiShuffleBold className="text-lg" />
                 </button>
 
                 {/* main big play/pause */}
@@ -284,7 +286,7 @@ const AlbumDetail = () => {
                       playFirstSong();
                     }
                   }}
-                  className="h-16 w-16 rounded-full flex items-center justify-center bg-white text-black shadow-lg transform active:scale-95"
+                  className="h-14 w-14 rounded-full flex items-center justify-center bg-white text-black shadow-md transform active:scale-95"
                   title={isAlbumPlaying && isPlaying ? "Pause" : "Play"}
                 >
                   {isAlbumPlaying && isPlaying ? <FaPause className="text-2xl" /> : <FaPlay className="text-2xl" />}
@@ -293,7 +295,7 @@ const AlbumDetail = () => {
                 {/* like (small) */}
                 <button
                   onClick={toggleLikeAlbum}
-                  className="h-11 w-11 rounded-full flex items-center justify-center bg-white/6 text-white/80"
+                  className="h-10 w-10 rounded-full flex items-center justify-center bg-white/6 text-white/80"
                   title="Like album"
                 >
                   {likedAlbums.some((a) => a.id === albumdata.id) ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
@@ -304,11 +306,11 @@ const AlbumDetail = () => {
         </div>
       </div>
 
-      {/* PAGE CONTENT */}
-      <div className="flex flex-col gap-[2rem] lg:gap-[2rem] px-[1.6rem] lg:px-[3rem] -mt-12 pb-32">
-        {/* Songs list */}
+      {/* PAGE CONTENT — pull up slightly but not overlapped; smaller negative margin */}
+      <div className="flex flex-col gap-6 px-4 lg:px-12 -mt-8 pb-32">
+        {/* Songs list — full width like before */}
         <div className="flex flex-col h-auto gap-4 mt-2">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {songs.map((song) => (
               <SongsList key={song.id} {...song} song={list} />
             ))}
@@ -317,17 +319,17 @@ const AlbumDetail = () => {
 
         {/* You Might Like */}
         {Array.isArray(suggetions) && suggetions.length > 0 && (
-          <div className="flex flex-col justify-center items-center w-full mb-[2rem]">
-            <h2 className="m-4 text-xl sm:text-2xl font-semibold w-full pl-3 sm:pl-[3rem]">
+          <div className="flex flex-col justify-center items-center w-full mb-2">
+            <h2 className="m-0 mt-2 text-xl sm:text-2xl font-semibold w-full">
               You Might Like
             </h2>
-            <div className="flex justify-center items-center gap-3 w-full">
+            <div className="flex justify-center items-center gap-3 w-full mt-3">
               <MdOutlineKeyboardArrowLeft
-                className="text-3xl hover:scale-125 transition-all duration-200 ease-in-out cursor-pointer h-[9rem] arrow-btn hidden lg:block"
+                className="text-3xl hover:scale-125 transition-all duration-200 ease-in-out cursor-pointer hidden lg:block"
                 onClick={() => scrollLeft(scrollRef)}
               />
               <div
-                className="grid grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 lg:gap-2 w-full px-3 lg:px-0 scroll-smooth"
+                className="grid grid-rows-1 grid-flow-col justify-start overflow-x-scroll scroll-hide items-center gap-3 w-full px-1 scroll-smooth"
                 ref={scrollRef}
               >
                 {suggetions.map((song, index) => (
@@ -335,7 +337,7 @@ const AlbumDetail = () => {
                 ))}
               </div>
               <MdOutlineKeyboardArrowRight
-                className="text-3xl hover:scale-125 transition-all duration-200 ease-in-out cursor-pointer h-[9rem] arrow-btn hidden lg:block"
+                className="text-3xl hover:scale-125 transition-all duration-200 ease-in-out cursor-pointer hidden lg:block"
                 onClick={() => scrollRight(scrollRef)}
               />
             </div>
@@ -344,18 +346,18 @@ const AlbumDetail = () => {
 
         {/* Similar Albums */}
         {similarAlbums.length > 0 && (
-          <div className="w-full mb-6">
-            <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3rem]">
+          <div className="w-full mb-4">
+            <h2 className="mt-2 text-xl lg:text-2xl font-semibold">
               Similar Albums
             </h2>
             <AlbumSlider albums={similarAlbums} />
           </div>
         )}
 
-        {/* Artists in this Album */}
+        {/* Artists in this Album — reduce extra top/bottom gap */}
         {albumArtists.length > 0 && (
-          <div className="w-full mb-[5rem]">
-            <h2 className="m-4 mt-0 text-xl lg:text-2xl font-semibold w-full ml-[1rem] lg:ml-[3.5rem]">
+          <div className="w-full mb-6">
+            <h2 className="text-xl lg:text-2xl font-semibold mb-4">
               Artists in this Album
             </h2>
             <ArtistSlider artists={albumArtists} />

@@ -1,5 +1,5 @@
 // src/pages/MyPlaylist.jsx
-import { useEffect, useState, useContext, useMemo, useRef } from "react";
+import { useEffect, useState, useContext, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import Player from "../components/Player";
@@ -268,17 +268,15 @@ const MyPlaylist = () => {
     <>
       <Navbar />
 
-      {/* HERO / banner — like PlaylistDetails */}
-      <div
-        className="relative w-full h-[22rem] lg:h-[28rem] overflow-hidden"
-        style={{
-          backgroundImage: `linear-gradient(rgba(2,6,23,0.8), rgba(2,6,23,0.9)), url(${playlistImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "saturate(0.95)",
-        }}
-      >
-        <div className="absolute inset-0 backdrop-blur-sm" />
+      {/* HERO / banner — like PlaylistDetails with big blurred background */}
+      <div className="relative w-full h-[22rem] lg:h-[28rem] overflow-hidden">
+        {/* Large blurred background image layer */}
+        <div
+          className="absolute inset-0 bg-cover bg-center filter blur-2xl scale-105 opacity-60"
+          style={{ backgroundImage: `url(${playlistImage})` }}
+        />
+        {/* gradient overlay (darker) */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(rgba(2,6,23,0.8), rgba(2,6,23,0.9))" }} />
 
         <div className="absolute left-0 right-0 bottom-0 px-[1.6rem] lg:px-[3rem] pb-6">
           <div className="flex items-end gap-6">
@@ -332,7 +330,7 @@ const MyPlaylist = () => {
                   {isPlaylistPlaying && isPlaying ? <FaPause className="text-2xl" /> : <FaPlay className="text-2xl" />}
                 </button>
 
-                {/* "like" not applicable for custom playlist; keep menu only */}
+                {/* header menu */}
                 <div className="relative">
                   <button
                     onClick={() => {
@@ -347,46 +345,26 @@ const MyPlaylist = () => {
 
                   {headerMenuOpen && (
                     <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setHeaderMenuOpen(false)}
-                      />
-                      <div className="absolute right-0 top-12 w-48 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-20 overflow-hidden">
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10 flex items-center gap-2"
-                          onClick={handlePlayAll}
-                        >
+                      {/* backdrop to close */}
+                      <div className="fixed inset-0 z-40" onClick={() => setHeaderMenuOpen(false)} />
+                      <div className="absolute right-0 top-12 w-48 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-50 overflow-hidden">
+                        <button className="w-full text-left px-3 py-2 hover:bg-white/10 flex items-center gap-2" onClick={handlePlayAll}>
                           <FaPlay className="text-[0.7rem]" /> Play all
                         </button>
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10 flex items-center gap-2"
-                          onClick={handleShufflePlay}
-                        >
+                        <button className="w-full text-left px-3 py-2 hover:bg-white/10 flex items-center gap-2" onClick={handleShufflePlay}>
                           <PiShuffleBold className="text-sm" /> Shuffle play
                         </button>
                         <div className="h-px bg-white/10 my-1" />
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10"
-                          onClick={() => { setIsAddModalOpen(true); setHeaderMenuOpen(false); }}
-                        >
+                        <button className="w-full text-left px-3 py-2 hover:bg-white/10" onClick={() => { setIsAddModalOpen(true); setHeaderMenuOpen(false); }}>
                           Add songs
                         </button>
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10"
-                          onClick={openRename}
-                        >
+                        <button className="w-full text-left px-3 py-2 hover:bg-white/10" onClick={openRename}>
                           Rename playlist
                         </button>
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10"
-                          onClick={toggleMultiSelect}
-                        >
+                        <button className="w-full text-left px-3 py-2 hover:bg-white/10" onClick={toggleMultiSelect}>
                           {multiSelectMode ? "Cancel multi select" : "Select multiple songs"}
                         </button>
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10 text-red-300"
-                          onClick={handleDeletePlaylist}
-                        >
+                        <button className="w-full text-left px-3 py-2 hover:bg-white/10 text-red-300" onClick={handleDeletePlaylist}>
                           Delete playlist
                         </button>
                       </div>
@@ -410,58 +388,58 @@ const MyPlaylist = () => {
             const songImg = getSongImage(song);
             const displayName = song.name || song.title || "";
             return (
-              <button
-                key={song.id || `${song.name}-${idx}`}
-                className="flex items-center justify-between w-full px-2 py-3 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors text-left"
-                onClick={() => {
-                  if (multiSelectMode) {
-                    toggleSelectSongForMulti(song.id);
-                    return;
-                  }
-                  playTrack(song);
-                }}
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <img src={songImg} alt={displayName} className="h-12 w-12 rounded-md object-cover" />
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium truncate">{displayName}</span>
-                    <span className="text-[0.8rem] opacity-70 truncate">{artists}</span>
+              <div key={song.id || `${song.name}-${idx}`} className="relative">
+                <button
+                  className="flex items-center justify-between w-full px-2 py-3 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors text-left"
+                  onClick={() => {
+                    if (multiSelectMode) {
+                      toggleSelectSongForMulti(song.id);
+                      return;
+                    }
+                    playTrack(song);
+                  }}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <img src={songImg} alt={displayName} className="h-12 w-12 rounded-md object-cover" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-medium truncate">{displayName}</span>
+                      <span className="text-[0.8rem] opacity-70 truncate">{artists}</span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="ml-3 text-[0.8rem] opacity-70">
-                    {song.duration ? new Date(song.duration * 1000).toISOString().substring(14, 19) : ""}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="ml-3 text-[0.8rem] opacity-70">
+                      {song.duration ? new Date(song.duration * 1000).toISOString().substring(14, 19) : ""}
+                    </span>
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setOpenSongMenuId(openSongMenuId === song.id ? null : song.id); }}
-                    className="p-1 rounded-full hover:bg-white/10"
-                  >
-                    <BsThreeDotsVertical />
-                  </button>
+                    {/* Wrap this button and its menu in a relative container so absolute menu is positioned to it */}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpenSongMenuId(openSongMenuId === song.id ? null : song.id); }}
+                        className="p-1 rounded-full hover:bg-white/10"
+                      >
+                        <BsThreeDotsVertical />
+                      </button>
 
-                  {openSongMenuId === song.id && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setOpenSongMenuId(null)} />
-                      <div className="absolute right-6 top-0 w-40 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-20 overflow-hidden">
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10"
-                          onClick={() => { playTrack(song); setOpenSongMenuId(null); }}
-                        >
-                          Play
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 hover:bg-white/10 text-red-300"
-                          onClick={() => handleRemoveSong(song.id)}
-                        >
-                          Remove from playlist
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </button>
+                      {openSongMenuId === song.id && (
+                        <>
+                          {/* backdrop to click outside and close menu */}
+                          <div className="fixed inset-0 z-40" onClick={() => setOpenSongMenuId(null)} />
+                          {/* absolute menu positioned relative to the wrapper */}
+                          <div className="absolute right-0 top-10 w-40 bg-[#020617] rounded-2xl border border-white/10 shadow-2xl text-xs z-50 overflow-hidden">
+                            <button className="w-full text-left px-3 py-2 hover:bg-white/10" onClick={() => { playTrack(song); setOpenSongMenuId(null); }}>
+                              Play
+                            </button>
+                            <button className="w-full text-left px-3 py-2 hover:bg-white/10 text-red-300" onClick={() => { handleRemoveSong(song.id); }}>
+                              Remove from playlist
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              </div>
             );
           })}
 
@@ -495,7 +473,7 @@ const MyPlaylist = () => {
 
       {/* ADD SONGS MODAL */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[#09090B] w-[95%] max-w-[550px] max-h-[80vh] rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex flex-col">
@@ -531,7 +509,7 @@ const MyPlaylist = () => {
 
       {/* RENAME MODAL */}
       {isRenameOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[#09090B] w-[90%] max-w-[420px] rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-semibold">Rename playlist</h2>
@@ -548,7 +526,7 @@ const MyPlaylist = () => {
 
       {/* MULTI-SELECT bottom bar */}
       {multiSelectMode && (
-        <div className="fixed bottom-[4.5rem] left-0 right-0 z-30 flex justify-center">
+        <div className="fixed bottom-[4.5rem] left-0 right-0 z-60 flex justify-center">
           <div className="bg-[#111827] px-4 py-2 rounded-full border border-white/10 flex items-center gap-3 text-xs">
             <span>{selectedSongIds.length} selected</span>
             <button onClick={removeSelectedSongs} disabled={selectedSongIds.length === 0} className={`px-3 py-1 rounded-full ${selectedSongIds.length === 0 ? "bg-white/10 text-white/40 cursor-not-allowed" : "bg-white text-black hover:opacity-90"}`}>Remove</button>

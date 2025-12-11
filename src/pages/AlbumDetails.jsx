@@ -1,5 +1,5 @@
 // src/pages/AlbumDetail.jsx
-import { useEffect, useState, useRef, useContext, useMemo } from "react";
+import { useEffect, useState, useRef, useContext } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import SongsList from "../components/SongsList";
@@ -215,17 +215,12 @@ const AlbumDetail = () => {
     currentSong && songs.some((s) => s.id === currentSong.id)
   );
 
-  // compute totals like playlist page
-  const { totalSongs, totalDurationLabel } = useMemo(() => {
-    const totalSongsLocal = songs.length;
-    const totalSeconds = songs.reduce((sum, s) => sum + (s?.duration || 0), 0);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    let label = "";
-    if (hours > 0) label += `${hours} hr `;
-    label += `${minutes} min`;
-    return { totalSongs: totalSongsLocal, totalDurationLabel: label };
-  }, [songs]);
+  // ---- replaced useMemo with direct computation ----
+  const totalSongs = songs.length;
+  const totalSeconds = songs.reduce((sum, s) => sum + (s?.duration || 0), 0);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const totalDurationLabel = `${hours > 0 ? hours + " hr " : ""}${minutes} min`;
 
   return (
     <>

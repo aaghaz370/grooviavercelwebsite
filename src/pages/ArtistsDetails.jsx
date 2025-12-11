@@ -5,16 +5,11 @@ import Navbar from "../components/Navbar";
 import Player from "../components/Player";
 import Navigator from "../components/Navigator";
 import Footer from "../components/footer";
-import SongsList from "../components/SongsList";
 import AlbumSlider from "../components/Sliders/AlbumSlider";
 import SongGrid from "../components/SongGrid";
 import { fetchArtistByID, fetchAlbumByID } from "../../fetch";
 import MusicContext from "../context/MusicContext";
-
-import {
-  MdOutlineKeyboardArrowLeft,
-  MdOutlineKeyboardArrowRight,
-} from "react-icons/md";
+import { MdOutlineKeyboardArrowLeft, MdOutlineKeyboardArrowRight } from "react-icons/md";
 
 const ArtistsDetails = () => {
   const { id } = useParams();
@@ -42,10 +37,11 @@ const ArtistsDetails = () => {
 
         setArtistData(artist || null);
 
-        // prefer full arrays if provided by API
         setTopSongs(artist?.topSongs || []);
         setTopAlbums(artist?.topAlbums?.albums || artist?.topAlbums || []);
         setSingles(artist?.singles || []);
+        // debug: check how many songs we actually received
+        console.log("topSongs length:", (artist?.topSongs || []).length);
       } catch (err) {
         console.error("fetchArtist error:", err);
         setError("Error fetching artist details");
@@ -106,6 +102,10 @@ const ArtistsDetails = () => {
   const visibleTopSongs = topSongs.slice(0, visibleCount);
   const hasMoreTopSongs = topSongs.length > visibleCount;
 
+  // helper to pick image like playlist
+  const getSongImage = (song) =>
+    song?.image?.[1]?.url || song?.image?.[2]?.url || song?.image?.[0]?.url || imageUrl;
+
   return (
     <>
       <Navbar />
@@ -124,14 +124,9 @@ const ArtistsDetails = () => {
 
         <div className="absolute left-0 right-0 bottom-0 px-[1.6rem] lg:px-[3rem] pb-6">
           <div className="flex items-end gap-6">
-            {/* Square cover with white border like playlist */}
             <div className="transform translate-y-6">
               <div className="h-[9.5rem] w-[9.5rem] lg:h-[12rem] lg:w-[12rem] rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-white/5">
-                <img
-                  src={imageUrl}
-                  alt={artistData.name || "Artist"}
-                  className="w-full h-full object-cover opacity-95"
-                />
+                <img src={imageUrl} alt={artistData.name || "Artist"} className="w-full h-full object-cover opacity-95" />
               </div>
             </div>
 
@@ -141,29 +136,16 @@ const ArtistsDetails = () => {
               </h1>
 
               <div className="mt-2 text-sm lg:text-base text-white/80">
-                {/* use followers if available */}
                 Followers : {artistData.followerCount || artistData.fans || "—"}
               </div>
 
               <div className="mt-4 flex items-center gap-4">
-                {/* no big play for artist by default; keep minimal icons if you want */}
                 <button
                   onClick={() => {
-                    // optional: play first top song
                     if (visibleTopSongs.length > 0) {
                       const s = visibleTopSongs[0];
-                      const audioSource = s.downloadUrl
-                        ? s.downloadUrl[4]?.url || s.downloadUrl
-                        : s.audio;
-                      playMusic(
-                        audioSource,
-                        s.name,
-                        s.duration,
-                        s.image,
-                        s.id,
-                        s.artists,
-                        topSongs
-                      );
+                      const audioSource = s.downloadUrl ? s.downloadUrl[4]?.url || s.downloadUrl : s.audio;
+                      playMusic(audioSource, s.name, s.duration, s.image || getSongImage(s), s.id, s.artists, topSongs);
                     }
                   }}
                   className="h-14 w-14 rounded-full flex items-center justify-center bg-white text-black shadow-lg transform active:scale-95"
@@ -178,13 +160,38 @@ const ArtistsDetails = () => {
 
       {/* page content below hero */}
       <div className="flex flex-col mt-2 px-[1.6rem] lg:px-[3rem] pb-32 -mt-12">
-        {/* Top Songs — playlist-like rows */}
+        {/* Top Songs — use exact playlist row markup so spacing matches */}
         <div className="mt-4">
           {topSongs.length === 0 && <div className="text-sm opacity-70">No songs available...</div>}
 
-          {visibleTopSongs.map((song, idx) => (
-            <SongsList key={song.id || `${song.name}-${idx}`} {...song} song={topSongs} />
-          ))}
+          {visibleTopSongs.map((song, idx) => {
+            const artists = song?.artists?.primary?.map((a) => a?.name).join(", ") || "";
+            const songImg = getSongImage(song);
+            return (
+              <button
+                key={song.id || `${song.name}-${idx}`}
+                className="flex items-center justify-between w-full px-2 py-3 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors text-left"
+                onClick={() => {
+                  const audioSource = song?.downloadUrl
+                    ? song.downloadUrl[4]?.url || song.downloadUrl[3]?.url || song.downloadUrl[0]?.url
+                    : song?.audio;
+                  playMusic(audioSource, song?.name, song?.duration, song?.image || songImg, song?.id, song?.artists, topSongs);
+                }}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <img src={songImg} alt={song?.name} className="h-12 w-12 rounded-md object-cover" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium truncate">{song?.name}</span>
+                    <span className="text-[0.8rem] opacity-70 truncate">{artists}</span>
+                  </div>
+                </div>
+
+                <span className="ml-3 text-[0.8rem] opacity-70">
+                  {song?.duration ? new Date((song.duration || 0) * 1000).toISOString().substring(14, 19) : ""}
+                </span>
+              </button>
+            );
+          })}
 
           {hasMoreTopSongs && (
             <div className="mt-4 flex justify-center">

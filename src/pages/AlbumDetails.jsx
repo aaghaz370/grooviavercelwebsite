@@ -1,5 +1,5 @@
 // src/pages/AlbumDetail.jsx
-import { useEffect, useState, useRef, useContext } from "react";
+import { useEffect, useState, useRef, useContext, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import SongsList from "../components/SongsList";
@@ -24,7 +24,7 @@ import { PiShuffleBold } from "react-icons/pi";
 import MusicContext from "../context/MusicContext";
 
 const AlbumDetail = () => {
-  const { id } = useParams(); // album id from URL
+  const { id } = useParams();
   const { playMusic, currentSong, isPlaying, shuffle, toggleShuffle } =
     useContext(MusicContext);
 
@@ -38,25 +38,18 @@ const AlbumDetail = () => {
     return JSON.parse(localStorage.getItem("likedAlbums")) || [];
   });
 
-  // NEW: extra sections
   const [similarAlbums, setSimilarAlbums] = useState([]);
   const [albumArtists, setAlbumArtists] = useState([]);
 
   const scrollRef = useRef(null);
 
-  const scrollLeft = (scrollRef) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft -= 1000;
-    }
+  const scrollLeft = (ref) => {
+    if (ref.current) ref.current.scrollLeft -= 1000;
+  };
+  const scrollRight = (ref) => {
+    if (ref.current) ref.current.scrollLeft += 1000;
   };
 
-  const scrollRight = (scrollRef) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft += 1000;
-    }
-  };
-
-  // ------------ MAIN ALBUM + SUGGESTION FETCH ------------
   useEffect(() => {
     const fetchDetails = async () => {
       try {
@@ -85,7 +78,7 @@ const AlbumDetail = () => {
     fetchDetails();
   }, [id]);
 
-  // ------------ LIKE / UNLIKE ALBUM ------------
+  // like/unlike
   const toggleLikeAlbum = () => {
     let storedLiked = JSON.parse(localStorage.getItem("likedAlbums")) || [];
 
@@ -104,59 +97,45 @@ const AlbumDetail = () => {
     localStorage.setItem("likedAlbums", JSON.stringify(storedLiked));
   };
 
-  // ------------ ARTISTS IN THIS ALBUM ------------
+  // artists
   useEffect(() => {
     const albumData = details?.data;
     if (!albumData) return;
-
     const songArtists =
       albumData.songs?.flatMap((s) => s.artists?.primary || []) || [];
-
     const topArtists = albumData.artists?.primary || [];
-
     const all = [...songArtists, ...topArtists];
-
     const unique = all.filter(
       (a, i, self) => a.id && i === self.findIndex((t) => t.id === a.id)
     );
-
     setAlbumArtists(unique);
   }, [details]);
 
-  // ------------ SIMILAR ALBUMS ------------
+  // similar albums
   useEffect(() => {
     const albumData = details?.data;
     if (!albumData) return;
-
     const fetchSimilar = async () => {
       try {
         const primaryArtistName =
           albumData.artists?.primary?.[0]?.name ||
           albumData.songs?.[0]?.artists?.primary?.[0]?.name ||
           null;
-
         const baseQuery =
           primaryArtistName ||
           albumData.name?.split("-")[0].trim() ||
           albumData.name;
-
         const similarRes = await searchAlbumByQuery(baseQuery);
         const all = similarRes?.data?.results || [];
-
-        const filtered = all
-          .filter((a) => a.id !== albumData.id)
-          .slice(0, 10);
-
+        const filtered = all.filter((a) => a.id !== albumData.id).slice(0, 10);
         setSimilarAlbums(filtered);
       } catch (e) {
         console.error("similar albums fetch error", e);
       }
     };
-
     fetchSimilar();
   }, [details]);
 
-  // ------------ LOADING / ERROR ------------
   if (loading)
     return (
       <div className="flex h-screen w-screen justify-center items-center ">
@@ -172,29 +151,29 @@ const AlbumDetail = () => {
     );
 
   const albumdata = details.data || {};
-  const primaryArtist = details.data?.artists?.primary?.[0] || {};
-  const artistId = primaryArtist.id;
-  const artistName = primaryArtist.name;
+  const songs = details.data?.songs || [];
 
-  // safe album image
   const albumImage =
     details?.data?.image?.[2]?.url ||
     details?.data?.image?.[1]?.url ||
     details?.data?.image?.[0]?.url ||
     "/default-image.png";
 
-  const songs = details.data?.songs || [];
-
-  // helper: get song image fallback to album
+  // helper fallback image for song
   const getSongImage = (song) =>
-    song.image?.[2]?.url || song.image?.[1]?.url || song.image?.[0]?.url || albumImage;
+    song.image?.[2]?.url ||
+    song.image?.[1]?.url ||
+    song.image?.[0]?.url ||
+    albumImage;
 
-  // play first song helper (keeps your functions unchanged)
+  // play first song – keep existing behavior
   const playFirstSong = () => {
     if (!songs || songs.length === 0) return;
     const firstSong = songs[0];
     const audioSource = firstSong.downloadUrl
-      ? firstSong.downloadUrl[4]?.url || firstSong.downloadUrl[0]?.url || firstSong.downloadUrl
+      ? firstSong.downloadUrl[4]?.url ||
+        firstSong.downloadUrl[0]?.url ||
+        firstSong.downloadUrl
       : firstSong.audio;
 
     playMusic(
@@ -208,118 +187,175 @@ const AlbumDetail = () => {
     );
   };
 
-  // detect album playing
   const isAlbumPlaying = Boolean(
     currentSong && songs.some((s) => s.id === currentSong.id)
   );
+
+  // compute totals like playlist page
+  const { totalSongs, totalDurationLabel } = useMemo(() => {
+    const totalSongsLocal = songs.length;
+    const totalSeconds = songs.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    let label = "";
+    if (hours > 0) label += `${hours} hr `;
+    label += `${minutes} min`;
+    return { totalSongs: totalSongsLocal, totalDurationLabel: label };
+  }, [songs]);
 
   return (
     <>
       <Navbar />
 
-      {/* HERO / banner — tuned spacing so it doesn't overlap content */}
-      <div
-        className="relative w-full h-[18rem] lg:h-[22rem] overflow-hidden"
-        style={{
-          backgroundImage: `linear-gradient(rgba(2,6,23,0.85), rgba(2,6,23,0.95)), url(${albumImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute inset-0 backdrop-blur-sm" />
-
-        <div className="absolute left-4 right-4 bottom-4 lg:left-12 lg:right-12 pb-2">
-          <div className="flex items-end gap-4 lg:gap-6">
-            <div className="transform translate-y-4">
-              <div className="h-[8.5rem] w-[8.5rem] lg:h-[11.5rem] lg:w-[11.5rem] rounded-2xl overflow-hidden shadow-2xl border border-white/6">
-                <img
-                  src={albumImage}
-                  alt={details.data.name || "Album"}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+      <div className="flex flex-col mt-[7.5rem] lg:mt-[5.5rem] px-[1.6rem] lg:px-[3rem] pb-32">
+        {/* Header — same style as PlaylistDetails */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="h-[7rem] w-[7rem] lg:h-[8rem] lg:w-[8rem] rounded-2xl overflow-hidden bg-white/5 shadow-xl shadow-black/40 DetailImg">
+              <img
+                src={albumImage}
+                alt={albumdata.name || "Album"}
+                className="h-full w-full object-cover"
+              />
             </div>
 
-            <div className="flex-1 text-left translate-y-4">
-              <h1 className="text-xl lg:text-3xl font-extrabold text-white leading-tight">
-                {details.data.name}
+            <div className="flex flex-col gap-1">
+              <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
+                {albumdata.type || "Album"}
+              </span>
+              <h1 className="text-[1.6rem] lg:text-[1.9rem] font-semibold leading-tight">
+                {albumdata.name}
               </h1>
-              <div className="mt-1 text-sm lg:text-base text-white/80">
-                {details.data.songCount} song{details.data.songCount !== 1 ? "s" : ""} •{" "}
-                {Math.floor((songs.reduce((a,b) => a + (b.duration||0),0))/3600)} hr{" "}
-                {Math.floor(((songs.reduce((a,b) => a + (b.duration||0),0))%3600)/60)} min
-              </div>
+              <span className="text-[0.8rem] opacity-70">
+                {totalSongs} song{totalSongs !== 1 ? "s" : ""} • {totalDurationLabel}
+              </span>
+              {albumdata.description && (
+                <span className="text-[0.75rem] opacity-60 line-clamp-2">
+                  {albumdata.description}
+                </span>
+              )}
+            </div>
+          </div>
 
-              {details.data.description && (
-                <div className="mt-2 text-sm text-white/70 line-clamp-2">
-                  {details.data.description}
-                </div>
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-2">
+              {songs.length > 0 && (
+                <>
+                  {/* small shuffle icon (no label) */}
+                  <button
+                    onClick={() => toggleShuffle && toggleShuffle()}
+                    className={`h-[2.6rem] w-[2.6rem] rounded-full flex items-center justify-center ${
+                      shuffle ? "bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] text-white" : "bg-white/6 text-white/80"
+                    }`}
+                    title="Shuffle"
+                  >
+                    <PiShuffleBold className="text-sm" />
+                  </button>
+
+                  {/* main big circular play/pause */}
+                  <button
+                    onClick={() => {
+                      if (isAlbumPlaying && isPlaying) {
+                        playMusic(
+                          currentSong?.audio?.currentSrc,
+                          currentSong?.name,
+                          currentSong?.duration,
+                          currentSong?.image,
+                          currentSong?.id,
+                          songs
+                        );
+                      } else {
+                        playFirstSong();
+                      }
+                    }}
+                    className={`ml-2 h-12 w-12 rounded-full flex items-center justify-center shadow-md transition transform active:scale-95 ${
+                      isAlbumPlaying && isPlaying ? "bg-white text-black" : "bg-white/90 text-black"
+                    }`}
+                    title={isAlbumPlaying && isPlaying ? "Pause" : "Play"}
+                  >
+                    {isAlbumPlaying && isPlaying ? <FaPause /> : <FaPlay />}
+                  </button>
+                </>
               )}
 
-              {/* controls row */}
-              <div className="mt-3 flex items-center gap-3">
-                {/* shuffle (small) */}
-                <button
-                  onClick={() => toggleShuffle && toggleShuffle()}
-                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${
-                    shuffle ? "bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] text-white" : "bg-white/6 text-white/80"
-                  }`}
-                  title="Shuffle"
-                >
-                  <PiShuffleBold className="text-lg" />
-                </button>
-
-                {/* main big play/pause */}
-                <button
-                  onClick={() => {
-                    if (isAlbumPlaying && isPlaying) {
-                      // pause by calling playMusic on current (matches existing pattern)
-                      playMusic(
-                        currentSong?.audio?.currentSrc,
-                        currentSong?.name,
-                        currentSong?.duration,
-                        currentSong?.image,
-                        currentSong?.id,
-                        songs
-                      );
-                    } else {
-                      playFirstSong();
-                    }
-                  }}
-                  className="h-14 w-14 rounded-full flex items-center justify-center bg-white text-black shadow-md transform active:scale-95"
-                  title={isAlbumPlaying && isPlaying ? "Pause" : "Play"}
-                >
-                  {isAlbumPlaying && isPlaying ? <FaPause className="text-2xl" /> : <FaPlay className="text-2xl" />}
-                </button>
-
-                {/* like (small) */}
-                <button
-                  onClick={toggleLikeAlbum}
-                  className="h-10 w-10 rounded-full flex items-center justify-center bg-white/6 text-white/80"
-                  title="Like album"
-                >
-                  {likedAlbums.some((a) => a.id === albumdata.id) ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
-                </button>
-              </div>
+              {/* like */}
+              <button
+                onClick={toggleLikeAlbum}
+                title="Like Album"
+                className="flex items-center justify-center h-[2.6rem] w-[2.6rem] rounded-full border border-white/20 bg-white/5 hover:bg-white/10 ml-3"
+              >
+                {likedAlbums.some((a) => a.id === albumdata.id) ? (
+                  <FaHeart className="text-red-500 text-lg" />
+                ) : (
+                  <FaRegHeart className="text-lg" />
+                )}
+              </button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* PAGE CONTENT — pull up slightly but not overlapped; smaller negative margin */}
-      <div className="flex flex-col gap-6 px-4 lg:px-12 -mt-8 pb-32">
-        {/* Songs list — full width like before */}
-        <div className="flex flex-col h-auto gap-4 mt-2">
-          <div className="flex flex-col gap-3">
-            {songs.map((song) => (
-              <SongsList key={song.id} {...song} song={list} />
-            ))}
-          </div>
+        {/* Songs list — full width, same row style as PlaylistDetails */}
+        <div className="mt-2 flex flex-col">
+          {songs.length === 0 && (
+            <div className="text-xs opacity-70">Album is empty...</div>
+          )}
+
+          {songs.map((song, idx) => {
+            const artists =
+              song.artists?.primary?.map((a) => a.name).join(", ") || "";
+            const songImg = getSongImage(song);
+
+            return (
+              <button
+                key={song.id || `${song.name}-${idx}`}
+                className="flex items-center justify-between w-full px-1 py-2 rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors text-left"
+                onClick={() =>
+                  playMusic(
+                    song.downloadUrl
+                      ? song.downloadUrl[4]?.url ||
+                        song.downloadUrl[3]?.url ||
+                        song.downloadUrl[0]?.url
+                      : song.audio,
+                    song.name,
+                    song.duration,
+                    song.image || songImg,
+                    song.id,
+                    song.artists,
+                    songs
+                  )
+                }
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <img
+                    src={songImg}
+                    alt={song.name}
+                    className="h-10 w-10 rounded-md object-cover"
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium truncate">
+                      {song.name}
+                    </span>
+                    <span className="text-[0.75rem] opacity-70 truncate">
+                      {artists}
+                    </span>
+                  </div>
+                </div>
+
+                <span className="ml-3 text-[0.75rem] opacity-70">
+                  {song.duration
+                    ? new Date(song.duration * 1000)
+                        .toISOString()
+                        .substring(14, 19)
+                    : ""}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* You Might Like */}
         {Array.isArray(suggetions) && suggetions.length > 0 && (
-          <div className="flex flex-col justify-center items-center w-full mb-2">
+          <div className="flex flex-col justify-center items-center w-full mb-[1.5rem]">
             <h2 className="m-0 mt-2 text-xl sm:text-2xl font-semibold w-full">
               You Might Like
             </h2>
@@ -346,20 +382,16 @@ const AlbumDetail = () => {
 
         {/* Similar Albums */}
         {similarAlbums.length > 0 && (
-          <div className="w-full mb-4">
-            <h2 className="mt-2 text-xl lg:text-2xl font-semibold">
-              Similar Albums
-            </h2>
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-3">Similar Albums</h2>
             <AlbumSlider albums={similarAlbums} />
           </div>
         )}
 
-        {/* Artists in this Album — reduce extra top/bottom gap */}
+        {/* Artists — tightened gap */}
         {albumArtists.length > 0 && (
-          <div className="w-full mb-6">
-            <h2 className="text-xl lg:text-2xl font-semibold mb-4">
-              Artists in this Album
-            </h2>
+          <div className="mt-6 mb-6">
+            <h2 className="text-xl font-semibold mb-3">Artists in this Album</h2>
             <ArtistSlider artists={albumArtists} />
           </div>
         )}

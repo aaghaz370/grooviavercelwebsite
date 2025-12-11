@@ -1,3 +1,4 @@
+// src/pages/ArtistsDetails.jsx
 import { useEffect, useState, useRef, useContext } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -9,11 +10,14 @@ import AlbumSlider from "../components/Sliders/AlbumSlider";
 import SongGrid from "../components/SongGrid";
 import { fetchArtistByID, fetchAlbumByID } from "../../fetch";
 import MusicContext from "../context/MusicContext";
+import he from "he";
 
 import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardArrowRight,
 } from "react-icons/md";
+import { FaPlay } from "react-icons/fa";
+import { PiShuffleBold } from "react-icons/pi";
 
 const ArtistsDetails = () => {
   const { id } = useParams();
@@ -54,10 +58,7 @@ const ArtistsDetails = () => {
         const ts = artist?.topSongs || [];
         setTopSongs(ts);
 
-        const ta =
-          artist?.topAlbums?.albums ||
-          artist?.topAlbums ||
-          [];
+        const ta = artist?.topAlbums?.albums || artist?.topAlbums || [];
         setTopAlbums(ta);
 
         const sg = artist?.singles || [];
@@ -92,7 +93,33 @@ const ArtistsDetails = () => {
   const imageUrl =
     artistData.image?.[2]?.url || artistData.image?.[0]?.url || "/Unknown.png";
 
-  // 👉 Single card pe tap -> album fetch -> first song play
+  // sanitize titles - remove From "..." wrapper while preserving the movie name
+  const sanitizeTitle = (raw) => {
+    if (!raw) return "";
+    // decode HTML entities first
+    let decoded = he.decode(raw);
+
+    // patterns to convert:
+    // "Song Title (From "Jawan")" -> "Song Title (Jawan)"
+    decoded = decoded.replace(
+      /\(From\s*["'“”](.*?)["'“”]\)/i,
+      "($1)"
+    );
+
+    // If still has outside "From " without parentheses e.g. 'Song Title From "Jawan"' -> 'Song Title (Jawan)'
+    decoded = decoded.replace(
+      /From\s*["'“”](.*?)["'“”]/i,
+      "($1)"
+    );
+
+    // fallback: remove stray From &quot; tokens
+    decoded = decoded.replace(/From\s*&quot;?/gi, "");
+    decoded = decoded.replace(/&quot;/gi, "");
+
+    return decoded.trim();
+  };
+
+  // 👉 Single card tap -> fetch album -> play first song
   const handleSingleClick = async (single) => {
     try {
       const albumId = single.id;
@@ -124,6 +151,17 @@ const ArtistsDetails = () => {
     }
   };
 
+  // play helper for SongsList rows (we pass sanitized name into SongsList)
+  const playFromRow = (song, queue) => {
+    if (!song) return;
+    const q = queue || topSongs;
+    const audioSource = song.downloadUrl
+      ? song.downloadUrl[4]?.url || song.downloadUrl
+      : song.audio;
+    const { name, duration, image, id, artists } = song;
+    playMusic(audioSource, name, duration, image, id, artists, q);
+  };
+
   return (
     <>
       <Navbar />
@@ -131,7 +169,8 @@ const ArtistsDetails = () => {
       <main className="pt-[9rem] lg:pt-[6.5rem] pb-[6rem] lg:pb-[4.5rem] px-4 lg:px-16 flex flex-col gap-8">
         {/* HERO */}
         <section className="flex flex-col lg:flex-row items-center lg:items-end gap-6">
-          <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden shadow-xl">
+          {/* BIG SQUARE ARTIST IMAGE (YT-like) */}
+          <div className="w-36 h-36 lg:w-48 lg:h-48 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-black/40 to-white/5">
             <img
               src={imageUrl}
               alt={artistData.name}
@@ -140,7 +179,7 @@ const ArtistsDetails = () => {
           </div>
 
           <div className="flex flex-col gap-2 lg:ml-4 w-full">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <h1 className="text-2xl lg:text-3xl font-semibold">
                 {artistData.name}
               </h1>
@@ -161,6 +200,44 @@ const ArtistsDetails = () => {
               </p>
             )}
           </div>
+
+          {/* RIGHT: play / shuffle / like minimal circular icons */}
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (topSongs && topSongs.length) playFromRow(topSongs[0], topSongs);
+              }}
+              className="h-12 w-12 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:scale-105 transition"
+              title="Play"
+            >
+              <FaPlay />
+            </button>
+
+            <button
+              onClick={() => {
+                if (!topSongs || !topSongs.length) return;
+                const arr = [...topSongs];
+                for (let i = arr.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                playFromRow(arr[0], arr);
+              }}
+              className="h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-sm hover:bg-white/10 transition"
+              title="Shuffle"
+            >
+              <PiShuffleBold />
+            </button>
+
+            {/* keep like button as before (you had heart elsewhere) - keep small circle */}
+            <button
+              className="h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-sm hover:bg-white/10 transition"
+              title="Like"
+            >
+              {/* We don't toggle here to keep logic same as before (you can wire it if needed) */}
+              <img src="/like-icon.svg" alt="like" className="w-5 h-5" />
+            </button>
+          </div>
         </section>
 
         {/* TOP SONGS */}
@@ -168,9 +245,20 @@ const ArtistsDetails = () => {
           <section className="flex flex-col gap-3">
             <h2 className="text-xl lg:text-2xl font-semibold">Top Songs</h2>
             <div className="flex flex-col gap-2">
-              {topSongs.map((song) => (
-                <SongsList key={song.id} {...song} song={topSongs} />
-              ))}
+              {topSongs.map((song) => {
+                // pass sanitized title to SongsList so the component shows cleaned title
+                const cleanName = sanitizeTitle(song.name || song.title);
+                return (
+                  <div key={song.id || cleanName}>
+                    <SongsList
+                      {...song}
+                      name={cleanName}
+                      song={topSongs}
+                      onPlay={() => playFromRow(song, topSongs)}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
@@ -207,7 +295,6 @@ const ArtistsDetails = () => {
                     <SongGrid
                       {...single}
                       song={singles}
-                      // title / subtitle etc handle for card
                       downloadUrl={
                         single.downloadUrl ||
                         single.songs?.[0]?.downloadUrl ||
@@ -216,7 +303,7 @@ const ArtistsDetails = () => {
                       image={single.image || single.songs?.[0]?.image}
                       artists={single.artists || single.songs?.[0]?.artists}
                       duration={single.duration || single.songs?.[0]?.duration}
-                      name={single.name || single.title}
+                      name={sanitizeTitle(single.name || single.title)}
                     />
                   </div>
                 ))}
